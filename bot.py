@@ -4,8 +4,8 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from telegram import ForceReply, Update
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 from services import get_schedule
 
@@ -18,7 +18,21 @@ logger = logging.getLogger(__name__)
 
 # Get env
 load_dotenv()
+
+# Set constants
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+STATIONS_KEYBOARD = [
+    [InlineKeyboardButton("Космонавтов", callback_data="kosmonavtov")],
+    [InlineKeyboardButton("Уралмаш", callback_data="uralmash")],
+    [InlineKeyboardButton("Машиностроителей", callback_data="mashinostroitelej")],
+    [InlineKeyboardButton("Уральская", callback_data="uralskaya")],
+    [InlineKeyboardButton("Динамо", callback_data="dinamo")],
+    [InlineKeyboardButton("Площадь 1905г", callback_data="ploshad_1905")],
+    [InlineKeyboardButton("Геологическая", callback_data="geologicheskay")],
+    [InlineKeyboardButton("Чкаловская", callback_data="chkalovskaya")],
+    [InlineKeyboardButton("Ботаническая", callback_data="botanicheskaya")],
+]
+STATIONS_REPLY_MARKUP = InlineKeyboardMarkup(STATIONS_KEYBOARD)
 
 
 # Define a few command handlers. These usually take the two arguments update and
@@ -26,9 +40,12 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
-    await update.message.reply_html(
-        rf"Hi {user.mention_html()}!",
-    )
+    text = (f'Привет {user.mention_html(user.first_name)}!\n'
+            'Бот показывает время до ближайшего поезда на выбранной станции.'
+            'Выбери нужную из списка ниже, а затем направление')
+    await update.message.reply_html(text)
+    await update.message.reply_text('Выбери станцию:',
+                                    reply_markup=STATIONS_REPLY_MARKUP)
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -48,7 +65,7 @@ async def schedule(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 def main() -> None:
     """Start the bot."""
     # Create the Application and pass it your bot's token.
-    application = Application.builder().token(BOT_TOKEN).build()
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # on different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))

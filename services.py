@@ -1,29 +1,21 @@
 import datetime as dt
 import sqlite3
-from typing import Any, List
-
-# Get parameters for request to DB
-
-from_station = 'mashinostroitelej'  # temporary hardcode
-to_station = 'botanicheskaya'  # temporary hardcode
-is_weekend = dt.datetime.today().weekday() > 4
 
 # Connect to the SQLite database
-conn = sqlite3.connect('schedule.db')
+CONN = sqlite3.connect('schedule.db')
 
 
 # Retrieve the closest time value from the database
-def get_schedule(from_station: str = from_station,
-                 to_station: str = to_station,
-                 is_weekend: bool = is_weekend) -> list[Any]:
-
-    cursor = conn.cursor()
+def get_schedule(from_station: str, to_station: str) -> list[tuple]:
+    is_weekend = dt.datetime.today().weekday() > 4
+    cursor = CONN.cursor()
     sql_query = f'''
         SELECT
           strftime(
             '%H:%M:%S',
             time(strftime('%s', departure_time) - strftime('%s', 'now', 'localtime'),
-            'unixepoch')
+            'unixepoch'
+            )
           )
         FROM
           schedule
@@ -36,10 +28,4 @@ def get_schedule(from_station: str = from_station,
           2;
         '''
     cursor.execute(sql_query)
-
     return cursor.fetchall()
-
-# Return time to the closest train and next
-
-# message_closest_train = f'{closest_train[0]} (ч:мин:с)'
-# message_next_train = f'{next_train[0]} (ч:мин:с)'

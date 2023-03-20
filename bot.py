@@ -24,7 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Состояния для ConversationHandler
-CHOICE_DIRECTION, NEXT_TRAIN = range(3)
+CHOICE_DIRECTION, NEXT_TRAIN = range(2)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

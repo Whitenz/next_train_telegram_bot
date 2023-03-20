@@ -7,6 +7,29 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
+# SQL параметры
+# Запрос получает из базы расчетное время до ближайших двух поездов
+DB_NAME = 'schedule'
+SQL_QUERY = f'''
+    SELECT 
+      strftime(
+        '%H:%M:%S', 
+        time(
+          strftime('%s', departure_time) - strftime('%s', 'now', 'localtime'), 
+          'unixepoch'
+        )
+      ) 
+    FROM 
+      {DB_NAME} 
+    WHERE 
+      from_station = ? 
+      AND to_station = ? 
+      AND is_weekend IS ? 
+      AND departure_time > time('now', 'localtime') 
+    LIMIT 
+      2;
+'''
+
 # Задаем постоянные для работы бота
 STATIONS = {
     'kosmonavtov': 'Космонавтов',
@@ -47,6 +70,6 @@ END_STATIONS_KEYBOARD = {
 }
 
 HELP_TEXT = (
-    'Бот показывает время до ближайшего поезда в метро Екатеринбурга. '
+    'Бот показывает время до ближайшего поезда в метро Екатеринбурга.\n'
     'Выбери нужную станцию из списка командой /stations, а затем направление.'
 )

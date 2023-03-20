@@ -15,28 +15,36 @@ STATIONS = {
     'uralskaya': 'Уральская',
     'dinamo': 'Динамо',
     'ploshad_1905': 'Площадь 1905г',
-    'geologicheskay': 'Геологическая',
+    'geologicheskaya': 'Геологическая',
     'chkalovskaya': 'Чкаловская',
     'botanicheskaya': 'Ботаническая',
 }
 
 STATIONS_KEYBOARD = [
-    [InlineKeyboardButton("Космонавтов", callback_data="kosmonavtov")],
-    [InlineKeyboardButton("Уралмаш", callback_data="uralmash")],
-    [InlineKeyboardButton("Машиностроителей", callback_data="mashinostroitelej")],
-    [InlineKeyboardButton("Уральская", callback_data="uralskaya")],
-    [InlineKeyboardButton("Динамо", callback_data="dinamo")],
-    [InlineKeyboardButton("Площадь 1905г", callback_data="ploshad_1905")],
-    [InlineKeyboardButton("Геологическая", callback_data="geologicheskay")],
-    [InlineKeyboardButton("Чкаловская", callback_data="chkalovskaya")],
-    [InlineKeyboardButton("Ботаническая", callback_data="botanicheskaya")],
+    [InlineKeyboardButton('Космонавтов', callback_data='kosmonavtov')],
+    [InlineKeyboardButton('Уралмаш', callback_data='uralmash')],
+    [InlineKeyboardButton('Машиностроителей', callback_data='mashinostroitelej')],
+    [InlineKeyboardButton('Уральская', callback_data='uralskaya')],
+    [InlineKeyboardButton('Динамо', callback_data='dinamo')],
+    [InlineKeyboardButton('Площадь 1905г', callback_data='ploshad_1905')],
+    [InlineKeyboardButton('Геологическая', callback_data='geologicheskaya')],
+    [InlineKeyboardButton('Чкаловская', callback_data='chkalovskaya')],
+    [InlineKeyboardButton('Ботаническая', callback_data='botanicheskaya')],
 ]
-
-TO_BOTANICHESKAYA = InlineKeyboardButton("На Ботаническую",
-                                         callback_data="botanicheskaya")
-TO_KOSMONAVTOV = InlineKeyboardButton("На Космонавтов",
-                                      callback_data="kosmonavtov")
 STATIONS_REPLY_MARKUP = InlineKeyboardMarkup(STATIONS_KEYBOARD)
+
+TO_BOTANICHESKAYA = InlineKeyboardButton(
+    'На Ботаническую',
+    callback_data='botanicheskaya'
+)
+TO_KOSMONAVTOV = InlineKeyboardButton(
+    'На Космонавтов',
+    callback_data='kosmonavtov'
+)
+END_STATIONS_KEYBOARD = {
+    'kosmonavtov': TO_BOTANICHESKAYA,
+    'botanicheskaya': TO_KOSMONAVTOV,
+}
 
 HELP_TEXT = (
     'Бот показывает время до ближайшего поезда в метро Екатеринбурга. '

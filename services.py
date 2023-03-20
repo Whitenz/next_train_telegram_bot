@@ -1,12 +1,17 @@
 import datetime as dt
 import sqlite3
+import sys
 
-# Connect to the SQLite database
-CONN = sqlite3.connect('schedule.db')
+# Подключение к БД
+try:
+    CONN = sqlite3.connect('schedule.db')
+except Exception as error:
+    sys.exit(error)
 
 
-# Retrieve the closest time value from the database
 def get_schedule(from_station: str, to_station: str) -> list[tuple]:
+    """Функция делает запрос к БД с переданными аргументами.
+    Возвращает список с двумя записями из БД - время до ближайших поездов."""
     is_weekend = dt.datetime.today().weekday() > 4
     cursor = CONN.cursor()
     sql_query = f'''

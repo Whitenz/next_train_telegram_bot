@@ -7,9 +7,10 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
-# SQL параметры
+# Параметры для работы с SQL БД
 # Запрос получает из базы расчетное время до ближайших двух поездов
 DB_NAME = 'schedule'
+DB_FILENAME = DB_NAME + '.sqlite3'
 SQL_QUERY = f'''
     SELECT 
       strftime(
@@ -18,7 +19,7 @@ SQL_QUERY = f'''
           strftime('%s', departure_time) - strftime('%s', 'now', 'localtime'), 
           'unixepoch'
         )
-      ) 
+      ) AS time_to_train
     FROM 
       {DB_NAME} 
     WHERE 
@@ -31,42 +32,33 @@ SQL_QUERY = f'''
 '''
 
 # Задаем постоянные для работы бота
-STATIONS = {
-    'kosmonavtov': 'Космонавтов',
-    'uralmash': 'Уралмаш',
-    'mashinostroitelej': 'Машиностроителей',
-    'uralskaya': 'Уральская',
-    'dinamo': 'Динамо',
-    'ploshad_1905': 'Площадь 1905г',
-    'geologicheskaya': 'Геологическая',
-    'chkalovskaya': 'Чкаловская',
-    'botanicheskaya': 'Ботаническая',
-}
 
+# Клавиатура для Telegram бота для выбора станции отправления
 STATIONS_KEYBOARD = [
-    [InlineKeyboardButton('Космонавтов', callback_data='kosmonavtov')],
-    [InlineKeyboardButton('Уралмаш', callback_data='uralmash')],
-    [InlineKeyboardButton('Машиностроителей', callback_data='mashinostroitelej')],
-    [InlineKeyboardButton('Уральская', callback_data='uralskaya')],
-    [InlineKeyboardButton('Динамо', callback_data='dinamo')],
-    [InlineKeyboardButton('Площадь 1905г', callback_data='ploshad_1905')],
-    [InlineKeyboardButton('Геологическая', callback_data='geologicheskaya')],
-    [InlineKeyboardButton('Чкаловская', callback_data='chkalovskaya')],
-    [InlineKeyboardButton('Ботаническая', callback_data='botanicheskaya')],
+    [InlineKeyboardButton('Космонавтов', callback_data='Космонавтов')],
+    [InlineKeyboardButton('Уралмаш', callback_data='Уралмаш')],
+    [InlineKeyboardButton('Машиностроителей', callback_data='Машиностроителей')],
+    [InlineKeyboardButton('Уральская', callback_data='Уральская')],
+    [InlineKeyboardButton('Динамо', callback_data='Динамо')],
+    [InlineKeyboardButton('Площадь 1905г', callback_data='Площадь 1905г')],
+    [InlineKeyboardButton('Геологическая', callback_data='Геологическая')],
+    [InlineKeyboardButton('Чкаловская', callback_data='Чкаловская')],
+    [InlineKeyboardButton('Ботаническая', callback_data='Ботаническая')],
 ]
 STATIONS_REPLY_MARKUP = InlineKeyboardMarkup(STATIONS_KEYBOARD)
 
+# Клавиатура для конечных станций (только одно направление движения поездов)
 TO_BOTANICHESKAYA = InlineKeyboardButton(
     'На Ботаническую',
-    callback_data='botanicheskaya'
+    callback_data='Ботаническая'
 )
 TO_KOSMONAVTOV = InlineKeyboardButton(
     'На Космонавтов',
-    callback_data='kosmonavtov'
+    callback_data='Космонавтов'
 )
 END_STATIONS_KEYBOARD = {
-    'kosmonavtov': TO_BOTANICHESKAYA,
-    'botanicheskaya': TO_KOSMONAVTOV,
+    'Космонавтов': TO_BOTANICHESKAYA,
+    'Ботаническая': TO_KOSMONAVTOV,
 }
 
 HELP_TEXT = (

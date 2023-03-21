@@ -134,4 +134,10 @@ media/
 .media
 backup/
 
-temp.py
+# DB
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+*.s3db
+*.sl3

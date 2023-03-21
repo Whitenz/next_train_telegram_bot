@@ -1,10 +1,10 @@
 import datetime as dt
 import sqlite3
 
-from config import SQL_QUERY
+from config import DB_FILENAME, SQL_QUERY
 
 # Connect to the SQLite database
-CONN = sqlite3.connect('schedule.sqlite3')
+CONN = sqlite3.connect(DB_FILENAME)
 
 
 def get_schedule(from_station: str, to_station: str) -> list[tuple]:

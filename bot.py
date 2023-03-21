@@ -11,7 +11,6 @@ from telegram.ext import (ApplicationBuilder,
 
 from config import (BOT_TOKEN,
                     END_STATIONS_KEYBOARD,
-                    STATIONS,
                     STATIONS_REPLY_MARKUP,
                     HELP_TEXT)
 from services import get_schedule
@@ -24,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Состояния для ConversationHandler
-CHOICE_DIRECTION, NEXT_TRAIN = range(2)
+CHOICE_DIRECTION, GET_TIME_TO_TRAIN = range(2)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -62,7 +61,7 @@ async def directions(update: Update,
     await query.edit_message_text(
         text="Выбери направление:", reply_markup=reply_markup
     )
-    return NEXT_TRAIN
+    return GET_TIME_TO_TRAIN
 
 
 async def time_to_train(update: Update,
@@ -74,7 +73,7 @@ async def time_to_train(update: Update,
     schedule_info = get_schedule(from_station, to_station)
     closest_train = schedule_info[0][0]
     next_train = schedule_info[1][0]
-    text = (f'{STATIONS.get(from_station)} --> {STATIONS.get(to_station)}:\n\n'
+    text = (f'{from_station} --> {to_station}:\n\n'
             f'ближайший поезд через {closest_train} (ч:мин:с)\n'
             f'следующий через {next_train} (ч:мин:с)')
     await query.answer()
@@ -91,7 +90,7 @@ def main() -> None:
         entry_points=[CommandHandler("stations", stations)],
         states={
             CHOICE_DIRECTION: [CallbackQueryHandler(directions)],
-            NEXT_TRAIN: [CallbackQueryHandler(time_to_train)],
+            GET_TIME_TO_TRAIN: [CallbackQueryHandler(time_to_train)],
         },
         fallbacks=[CommandHandler("stations", stations)],
     )

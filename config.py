@@ -12,7 +12,9 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 DB_NAME = 'schedule'
 DB_FILENAME = DB_NAME + '.sqlite3'
 SQL_QUERY = f'''
-    SELECT 
+    SELECT
+      from_station,
+      to_station, 
       strftime(
         '%H:%M:%S', 
         time(

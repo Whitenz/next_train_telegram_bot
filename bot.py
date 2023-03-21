@@ -3,6 +3,7 @@
 import logging
 
 from telegram import InlineKeyboardMarkup, Update
+from telegram.constants import ParseMode
 from telegram.ext import (ApplicationBuilder,
                           CallbackQueryHandler,
                           CommandHandler,
@@ -70,14 +71,12 @@ async def time_to_train(update: Update,
     query = update.callback_query
     to_station = query.data
     from_station = context.chat_data.get('from_station')
-    schedule_info = get_schedule(from_station, to_station)
-    closest_train = schedule_info[0][0]
-    next_train = schedule_info[1][0]
-    text = (f'{from_station} --> {to_station}:\n\n'
-            f'ближайший поезд через {closest_train} (ч:мин:с)\n'
-            f'следующий через {next_train} (ч:мин:с)')
+    closest_train, next_train = get_schedule(from_station, to_station)
+    text = (f'<b>{closest_train.direction}:</b>\n\n'
+            f'ближайший поезд через {closest_train.time_to_train} (ч:мин:с)\n'
+            f'следующий через {next_train.time_to_train} (ч:мин:с)')
     await query.answer()
-    await query.edit_message_text(text)
+    await query.edit_message_text(text, parse_mode=ParseMode.HTML)
     return ConversationHandler.END
 
 

@@ -8,7 +8,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
 # Параметры для работы с SQL БД
-# Запрос получает из базы расчетное время до ближайших двух поездов
+# Запрос получает из базы расчетное время до ближайших поездов
 DB_NAME = 'schedule'
 DB_FILENAME = DB_NAME + '.sqlite3'
 SQL_QUERY = f'''

@@ -71,7 +71,7 @@ async def time_to_train(update: Update,
     query = update.callback_query
     to_station = query.data
     from_station = context.chat_data.get('from_station')
-    closest_train, next_train = get_schedule(from_station, to_station)
+    closest_train, next_train = await get_schedule(from_station, to_station)
     text = (f'<b>{closest_train.direction}:</b>\n\n'
             f'ближайший поезд через {closest_train.time_to_train} (ч:мин:с)\n'
             f'следующий через {next_train.time_to_train} (ч:мин:с)')

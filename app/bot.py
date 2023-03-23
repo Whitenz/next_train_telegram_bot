@@ -6,18 +6,17 @@ from telegram.constants import ParseMode
 from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
                           CommandHandler, ContextTypes, ConversationHandler)
 
-from config import (BOT_TOKEN, END_STATIONS_KEYBOARD, HELP_TEXT,
-                    STATIONS_REPLY_MARKUP)
+from services import get_text_with_time_to_train
+from config import (BOT_TOKEN, CHOICE_DIRECTION, END_STATIONS_KEYBOARD,
+                    GET_TIME_TO_TRAIN, HELP_TEXT, STATIONS_REPLY_MARKUP)
 from services import get_schedule
+
 # Подключаем логгер
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
-# Состояния для ConversationHandler
-CHOICE_DIRECTION, GET_TIME_TO_TRAIN = range(2)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -64,10 +63,8 @@ async def time_to_train(update: Update,
     query = update.callback_query
     to_station = query.data
     from_station = context.chat_data.get('from_station')
-    closest_train, next_train = await get_schedule(from_station, to_station)
-    text = (f'<b>{closest_train.direction}:</b>\n\n'
-            f'ближайший поезд через {closest_train.time_to_train} (ч:мин:с)\n'
-            f'следующий через {next_train.time_to_train} (ч:мин:с)')
+    schedule = await get_schedule(from_station, to_station)
+    text = get_text_with_time_to_train(schedule)
     await query.answer()
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)
     return ConversationHandler.END

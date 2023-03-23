@@ -8,9 +8,11 @@ load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
 # Параметры для работы с SQL БД
-# Запрос получает из базы расчетное время до ближайших поездов
 DB_NAME = 'schedule'
 DB_FILENAME = DB_NAME + '.sqlite3'
+MAX_AWAIT_TRAIN = '00:25'
+LIMIT_ROW = 2
+# Запрос получает из базы расчетное время до ближайших поездов
 SQL_QUERY = f'''
     SELECT
       from_station,
@@ -27,19 +29,18 @@ SQL_QUERY = f'''
     WHERE 
       from_station = ? 
       AND to_station = ? 
-      AND is_weekend IS ? 
-      AND departure_time > time('now', 'localtime') 
+      AND is_weekend IS ?
+      AND  time_to_train < time(?)
     LIMIT 
-      2;
+      ?;
 '''
-
-# Задаем постоянные для работы бота
 
 # Клавиатура для Telegram бота для выбора станции отправления
 STATIONS_KEYBOARD = [
     [InlineKeyboardButton('Космонавтов', callback_data='Космонавтов')],
     [InlineKeyboardButton('Уралмаш', callback_data='Уралмаш')],
-    [InlineKeyboardButton('Машиностроителей', callback_data='Машиностроителей')],
+    [InlineKeyboardButton('Машиностроителей',
+                          callback_data='Машиностроителей')],
     [InlineKeyboardButton('Уральская', callback_data='Уральская')],
     [InlineKeyboardButton('Динамо', callback_data='Динамо')],
     [InlineKeyboardButton('Площадь 1905г', callback_data='Площадь 1905г')],
@@ -67,3 +68,6 @@ HELP_TEXT = (
     'Бот показывает время до ближайшего поезда в метро Екатеринбурга.\n'
     'Выбери нужную станцию из списка командой /stations, а затем направление.'
 )
+
+# Состояния для ConversationHandler
+CHOICE_DIRECTION, GET_TIME_TO_TRAIN = range(2)

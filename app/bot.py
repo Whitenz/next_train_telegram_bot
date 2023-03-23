@@ -1,21 +1,14 @@
 #!/usr/bin/env python
-
 import logging
 
 from telegram import InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
-from telegram.ext import (ApplicationBuilder,
-                          CallbackQueryHandler,
-                          CommandHandler,
-                          ContextTypes,
-                          ConversationHandler)
+from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
+                          CommandHandler, ContextTypes, ConversationHandler)
 
-from config import (BOT_TOKEN,
-                    END_STATIONS_KEYBOARD,
-                    STATIONS_REPLY_MARKUP,
-                    HELP_TEXT)
+from config import (BOT_TOKEN, END_STATIONS_KEYBOARD, HELP_TEXT,
+                    STATIONS_REPLY_MARKUP)
 from services import get_schedule
-
 # Подключаем логгер
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",

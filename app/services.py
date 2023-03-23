@@ -1,9 +1,9 @@
 import datetime as dt
 from collections import namedtuple
 
-import aiosqlite
-
 from config import DB_FILENAME, SQL_QUERY
+
+import aiosqlite
 
 
 class Schedule(namedtuple('Train', ['from_station',

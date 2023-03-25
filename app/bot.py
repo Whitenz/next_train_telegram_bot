@@ -6,10 +6,10 @@ from telegram.constants import ParseMode
 from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
                           CommandHandler, ContextTypes, ConversationHandler)
 
-from services import get_text_with_time_to_train
 from config import (BOT_TOKEN, CHOICE_DIRECTION, END_STATIONS_KEYBOARD,
-                    GET_TIME_TO_TRAIN, HELP_TEXT, STATIONS_REPLY_MARKUP)
-from services import get_schedule
+                    GET_TIME_TO_TRAIN, HELP_TEXT, METRO_IS_CLOSED_TEXT,
+                    STATIONS_REPLY_MARKUP)
+from services import get_schedule, get_text_with_time_to_train, metro_is_closed
 
 # Подключаем логгер
 logging.basicConfig(
@@ -33,6 +33,9 @@ async def help_command(update: Update,
 
 async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Отправляет список станций после команды /stations."""
+    if metro_is_closed():
+        await update.message.reply_text(METRO_IS_CLOSED_TEXT)
+        return ConversationHandler.END
     await update.message.reply_text('Выбери станцию:',
                                     reply_markup=STATIONS_REPLY_MARKUP)
     return CHOICE_DIRECTION

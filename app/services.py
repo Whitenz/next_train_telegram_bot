@@ -1,7 +1,8 @@
 import datetime as dt
 from collections import namedtuple
 
-from config import DB_FILENAME, LIMIT_ROW, SQL_QUERY, MAX_AWAIT_TRAIN
+from config import (CLOSE_TIME_METRO, DB_FILENAME, LIMIT_ROW,
+                    OPEN_TIME_METRO, SQL_QUERY, MAX_AWAIT_TRAIN)
 
 import aiosqlite
 
@@ -26,9 +27,15 @@ def namedtuple_factory(cursor, row):
 
 
 def is_weekend() -> bool:
-    today = dt.datetime.today()
+    """Функция проверяет выходной сейчас день или нет."""
+    today = dt.datetime.now()
     delta = dt.timedelta(minutes=30)
     return (today - delta).isoweekday() > 5
+
+
+def metro_is_closed() -> bool:
+    """Функция проверяет закрыто ли метро в соответствии с часами работы."""
+    return CLOSE_TIME_METRO <= dt.datetime.now().time() <= OPEN_TIME_METRO
 
 
 async def get_schedule(from_station: str,

@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 import logging
 
-from telegram import InlineKeyboardMarkup, Update
+from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
                           CommandHandler, ContextTypes, ConversationHandler)
 
-from config import (BOT_TOKEN, CHOICE_DIRECTION, END_STATIONS_KEYBOARD,
-                    GET_TIME_TO_TRAIN, HELP_TEXT, METRO_IS_CLOSED_TEXT,
-                    STATIONS_REPLY_MARKUP)
+from config import (BOT_TOKEN, CHOICE_DIRECTION, DIRECTION_REPLY_MARKUP,
+                    END_STATION_DIRECTION, GET_TIME_TO_TRAIN, HELP_TEXT,
+                    METRO_IS_CLOSED_TEXT, STATIONS_REPLY_MARKUP)
 from services import get_schedule, get_text_with_time_to_train, metro_is_closed
 
 # Подключаем логгер
@@ -46,17 +46,21 @@ async def directions(update: Update,
     """Этап диалога для выбора направления движения поездов."""
     query = update.callback_query
     from_station = query.data
-    context.chat_data['from_station'] = from_station
+
     # Ниже проверка на конечную станцию, т.к. тогда только одно направление
-    if from_station in END_STATIONS_KEYBOARD:
-        keyboard = [[END_STATIONS_KEYBOARD[from_station]]]
-    else:
-        keyboard = [[*END_STATIONS_KEYBOARD.values()]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    # и дальнейший выбор направления не нужен
+    if from_station in END_STATION_DIRECTION:
+        to_station = END_STATION_DIRECTION[from_station]
+        schedule = await get_schedule(from_station, to_station)
+        text = get_text_with_time_to_train(schedule)
+        await query.edit_message_text(text, parse_mode=ParseMode.HTML)
+        return ConversationHandler.END
+
+    context.chat_data['from_station'] = from_station
+    reply_markup = DIRECTION_REPLY_MARKUP
     await query.answer()
-    await query.edit_message_text(
-        text="Выбери направление:", reply_markup=reply_markup
-    )
+    await query.edit_message_text(text="Выбери направление:",
+                                  reply_markup=reply_markup)
     return GET_TIME_TO_TRAIN
 
 
@@ -64,8 +68,8 @@ async def time_to_train(update: Update,
                         context: ContextTypes.DEFAULT_TYPE) -> int:
     """Заключительный этап диалога. Отправляет время до ближайших поездов."""
     query = update.callback_query
-    to_station = query.data
     from_station = context.chat_data.get('from_station')
+    to_station = query.data
     schedule = await get_schedule(from_station, to_station)
     text = get_text_with_time_to_train(schedule)
     await query.answer()

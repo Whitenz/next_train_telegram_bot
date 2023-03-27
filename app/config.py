@@ -51,20 +51,22 @@ STATIONS_KEYBOARD = [
 ]
 STATIONS_REPLY_MARKUP = InlineKeyboardMarkup(STATIONS_KEYBOARD)
 
-# Клавиатура для конечных станций (только одно направление движения поездов)
-TO_BOTANICHESKAYA = InlineKeyboardButton(
-    'На Ботаническую',
-    callback_data='Ботаническая'
-)
-TO_KOSMONAVTOV = InlineKeyboardButton(
-    'На Космонавтов',
-    callback_data='Космонавтов'
-)
-END_STATIONS_KEYBOARD = {
-    'Космонавтов': TO_BOTANICHESKAYA,
-    'Ботаническая': TO_KOSMONAVTOV,
-}
+# Клавиатура для Telegram бота для выбора направления движения поезда
+DIRECTION_KEYBOARD = [
+    [
+        InlineKeyboardButton('На Ботаническую', callback_data='Ботаническая'),
+        InlineKeyboardButton('На Космонавтов', callback_data='Космонавтов'),
+    ]
+]
+DIRECTION_REPLY_MARKUP = InlineKeyboardMarkup(DIRECTION_KEYBOARD)
 
+# Словарь для выбора направления на конечных станциях, где 'from_station' ключ,
+# а 'to_station' значение (добавлен, т.к. нет смысла выбирать пользователю)
+END_STATION_DIRECTION = {
+    'Космонавтов': 'Ботаническая',
+    'Ботаническая': 'Космонавтов',
+}
+# Текст для команды /help
 HELP_TEXT = (
     'Бот показывает время до ближайшего поезда в метро Екатеринбурга.\n'
     'Выбери нужную станцию из списка командой /stations, а затем направление.'

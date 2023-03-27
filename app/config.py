@@ -11,19 +11,16 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 # Параметры для работы с SQL БД
 DB_NAME = 'schedule'
 DB_FILENAME = DB_NAME + '.sqlite3'
-MAX_AWAIT_TRAIN = '01:00'
-LIMIT_ROW = 2
-# Запрос получает из базы расчетное время до ближайших поездов
-SQL_QUERY = f'''
+LIMIT_ROW = 2  # берем из БД для бота только два ближайших поезда
+
+
+TIME_TO_TRAIN_QUERY = f'''
     SELECT
       from_station,
       to_station, 
-      strftime(
-        '%H:%M:%S', 
-        time(
+      time(
           strftime('%s', departure_time) - strftime('%s', 'now', 'localtime'), 
           'unixepoch'
-        )
       ) AS time_to_train
     FROM 
       {DB_NAME} 
@@ -31,7 +28,8 @@ SQL_QUERY = f'''
       from_station = ? 
       AND to_station = ? 
       AND is_weekend IS ?
-      AND  time_to_train < time(?)
+    ORDER BY
+      time_to_train
     LIMIT 
       ?;
 '''

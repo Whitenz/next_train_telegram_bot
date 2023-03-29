@@ -9,28 +9,28 @@ load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
 # Параметры для работы с SQL БД
-DB_NAME = 'schedule'
-DB_FILENAME = DB_NAME + '.sqlite3'
+DB_FILENAME = 'schedule.sqlite3'
 LIMIT_ROW = 2  # берем из БД для бота только два ближайших поезда
-
 
 TIME_TO_TRAIN_QUERY = f'''
     SELECT
-      from_station,
-      to_station, 
+      st1.name_station AS from_station,
+      st2.name_station AS to_station,
       time(
-          strftime('%s', departure_time) - strftime('%s', 'now', 'localtime'), 
+          strftime('%s', sc.departure_time) - strftime('%s', 'now', 'localtime'),
           'unixepoch'
       ) AS time_to_train
-    FROM 
-      {DB_NAME} 
-    WHERE 
-      from_station = ? 
-      AND to_station = ? 
-      AND is_weekend IS ?
+    FROM
+      schedule AS sc
+      INNER JOIN station AS st1 ON st1.id_station = sc.from_station
+      INNER JOIN station AS st2 ON st2.id_station = sc.to_station
+    WHERE
+      st1.name_station = ?
+      AND st2.name_station = ?
+      AND sc.is_weekend IS ?
     ORDER BY
       time_to_train
-    LIMIT 
+    LIMIT
       ?;
 '''
 

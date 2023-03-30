@@ -3,13 +3,28 @@ import logging
 
 from telegram import Update
 from telegram.constants import ParseMode
-from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
-                          CommandHandler, ContextTypes, ConversationHandler)
+from telegram.ext import (ApplicationBuilder,
+                          CallbackQueryHandler,
+                          CommandHandler,
+                          ContextTypes,
+                          ConversationHandler,
+                          MessageHandler,
+                          filters)
 
-from config import (BOT_TOKEN, CHOICE_DIRECTION, DIRECTION_REPLY_MARKUP,
-                    END_STATION_DIRECTION, GET_TIME_TO_TRAIN, HELP_TEXT,
-                    METRO_IS_CLOSED_TEXT, STATIONS_REPLY_MARKUP)
-from services import get_schedule, get_text_with_time_to_train, metro_is_closed
+from config import (ADD_FAVORITES_COMMAND, BOT_TOKEN,
+                    CHOICE_DIRECTION,
+                    DIRECTION_REPLY_MARKUP,
+                    END_STATION_DIRECTION,
+                    ADD_FAVORITES_TO_DB,
+                    GET_TIME_TO_TRAIN,
+                    HELP_COMMAND, HELP_TEXT,
+                    METRO_IS_CLOSED_TEXT,
+                    SCHEDULE_COMMAND,
+                    START_COMMAND, STATIONS_REPLY_MARKUP)
+from services import (add_favorites_to_db,
+                      get_schedule,
+                      get_text_with_time_to_train,
+                      metro_is_closed)
 
 # Подключаем логгер
 logging.basicConfig(
@@ -33,7 +48,8 @@ async def help_command(update: Update,
 
 async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Отправляет список станций после команды /stations."""
-    if metro_is_closed():
+    message = update.message
+    if SCHEDULE_COMMAND in message.text and metro_is_closed():
         await update.message.reply_text(METRO_IS_CLOSED_TEXT)
         return ConversationHandler.END
     await update.message.reply_text('Выбери станцию:',
@@ -46,7 +62,6 @@ async def directions(update: Update,
     """Этап диалога для выбора направления движения поездов."""
     query = update.callback_query
     from_station = query.data
-
     # Ниже проверка на конечную станцию, т.к. тогда только одно направление
     # и дальнейший выбор направления не нужен
     if from_station in END_STATION_DIRECTION:
@@ -77,20 +92,50 @@ async def time_to_train(update: Update,
     return ConversationHandler.END
 
 
+async def add_favorites(update: Update,
+                        context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Заключительный этап диалога. Отправляет статус записи в 'favorite'."""
+    query = update.callback_query
+    from_station = context.chat_data.get('from_station')
+    to_station = query.data
+    id_bot_user = query.from_user.id
+    result = add_favorites_to_db(from_station, to_station, id_bot_user)
+    await query.answer()
+    await query.edit_message_text('test', parse_mode=ParseMode.HTML)
+    return ConversationHandler.END
+
+
+async def wrong_command(update: Update,
+                        context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Функция обрабатывает все сообщения и команды, если бот их не должен
+     обрабатывать в данный момент. Находясь в ConversationHandler бот принимает
+     только ввод с предложенных кнопок."""
+    await update.message.reply_text(text='Некорректная команда')
+
+
 def main() -> None:
     """Главная функция, стартующая бота."""
     application = ApplicationBuilder().token(BOT_TOKEN).build()
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("stations", stations)],
+    application.add_handler(CommandHandler(START_COMMAND, start))
+    application.add_handler(CommandHandler(HELP_COMMAND, help_command))
+    schedule_handler = ConversationHandler(
+        entry_points=[CommandHandler(SCHEDULE_COMMAND, stations)],
         states={
             CHOICE_DIRECTION: [CallbackQueryHandler(directions)],
             GET_TIME_TO_TRAIN: [CallbackQueryHandler(time_to_train)],
         },
-        fallbacks=[CommandHandler("stations", stations)],
+        fallbacks=[MessageHandler(filters.ALL, wrong_command)],
     )
-    application.add_handler(conv_handler)
+    add_favorites_handler = ConversationHandler(
+        entry_points=[CommandHandler(ADD_FAVORITES_COMMAND, stations)],
+        states={
+            CHOICE_DIRECTION: [CallbackQueryHandler(directions)],
+            ADD_FAVORITES_TO_DB: [CallbackQueryHandler(add_favorites)],
+        },
+        fallbacks=[MessageHandler(filters.ALL, wrong_command)],
+    )
+    application.add_handler(schedule_handler)
+    application.add_handler(add_favorites_handler)
     application.run_polling()
 
 

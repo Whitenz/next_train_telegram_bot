@@ -1,5 +1,6 @@
 import datetime as dt
 from dataclasses import dataclass
+from typing import Any
 
 import aiosqlite
 
@@ -66,3 +67,22 @@ def get_text_with_time_to_train(schedule):
             f'последний поезд через {schedule[0].time_to_train} (мин:с)'
         )
     return f'По расписанию поездов сегодня больше нет.'
+
+
+async def add_favorites_to_db(from_station: str,
+                              to_station: str,
+                              id_bot_user: int) -> Any:
+    """Функция делает запрос к БД с переданными аргументами.
+    Возвращает список с объектами именованного кортежа."""
+    parameters = (from_station, to_station, id_bot_user)
+    db = await aiosqlite.connect(DB_FILENAME)
+    check_limit_query = '''
+        SELECT * 
+        FROM favorite as f
+        WHERE id_bot_user = ?
+    '''
+    cursor = await db.execute(check_limit_query, (id_bot_user,))
+    rows = await cursor.fetchall()
+    await cursor.close()
+    await db.close()
+    return rows

@@ -8,10 +8,10 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
-# Параметры для работы с SQL БД
+# Параметры и запросы для работы с SQL БД
 DB_FILENAME = 'schedule.sqlite3'
 LIMIT_ROW = 2  # берем из БД для бота только два ближайших поезда
-TIME_TO_TRAIN_QUERY = f'''
+TIME_TO_TRAIN_QUERY = '''
     SELECT
       st1.name_station AS from_station,
       st2.name_station AS to_station,
@@ -31,6 +31,33 @@ TIME_TO_TRAIN_QUERY = f'''
       time_to_train
     LIMIT
       ?;
+'''
+ADD_FAVORITE_QUERY = '''
+    INSERT OR IGNORE INTO
+      favorite (id_bot_user, from_station, to_station)
+    VALUES (
+      ?,
+      (SELECT id_station FROM station WHERE name_station = ?),
+      (SELECT id_station FROM station WHERE name_station = ?)
+    );
+'''
+GET_FAVORITES_QUERY = '''
+    SELECT
+      st1.name_station AS from_station,
+      st2.name_station AS to_station
+    FROM
+      favorite AS f
+      INNER JOIN station AS st1 on st1.id_station = f.from_station
+      INNER JOIN station AS st2 on st2.id_station = f.to_station
+    WHERE
+      id_bot_user = ?  
+'''
+CLEAR_FAVORITES_QUERY = '''
+    DELETE
+    FROM
+      favorite
+    WHERE
+      id_bot_user = ?
 '''
 
 # Клавиатура для Telegram бота для выбора станции отправления
@@ -66,33 +93,38 @@ END_STATION_DIRECTION = {
 
 # Состояния для ConversationHandler's
 CHOICE_DIRECTION, GET_TIME_TO_TRAIN = range(2)
-ADD_FAVORITES_TO_DB = 1
+ADD_FAVORITE_TO_DB = 1
 
 # Часы работы метрополитена. Интервал расширен на 0.5 часа в обе стороны
 # для отображения всех поездов до/после открытия/закрытия
 OPEN_TIME_METRO = dt.time(hour=5, minute=30)
 CLOSE_TIME_METRO = dt.time(hour=0, minute=30)
 
+# Команды, которые обрабатывает бот
+START_COMMAND = 'start'
+HELP_COMMAND = 'help'
+SCHEDULE_COMMAND = 'schedule'
+FAVORITES_COMMAND = 'favorites'
+ADD_FAVORITE_COMMAND = 'add_favorite'
+CLEAR_FAVORITES_COMMAND = 'clear_favorites'
+
 # Текст сообщений для пользователя
 HELP_TEXT = (
-    'Бот показывает время до ближайшего поезда в метро Екатеринбурга.\n\n'
-    'Команда /schedule показывает время до ближайшего поезда. Для этого выбери'
-    ' свою станцию, а затем направление движения поезда.\n\n'
-    'Команда /favourites показывает время до ближайших поездов на избранных '
+    'Бот знает расписание движения поездов в метро Екатеринбурга.\n\n'
+    'Команда /schedule показывает время до ближайших поездов. Для этого нужно'
+    ' выбрать свою станцию, а затем направление движения поезда.\n\n'
+    'Команда /favorites показывает время до ближайших поездов на избранных '
     'маршрутах (не более двух).\n\n'
-    'Команда /add_favorites и /clear_favorites добавляет в список избранных '
-    'маршрутов и очищает его соответственно. Добавить можно не более двух'
-    ' маршрутов.'
+    'Команда /add_favorite и /clear_favorites добавляет выбранный маршрут в'
+    ' список избранных маршрутов и очищает его соответственно. Добавить можно'
+    ' не более двух маршрутов.'
 )
 METRO_IS_CLOSED_TEXT = (
     'Метрополитен закрыт. Часы работы с 06:00 до 00:00.\n'
     'Расписание будет доступно с 05:30.'
 )
-
-# Команды, которые обрабатывает бот
-START_COMMAND = 'start'
-HELP_COMMAND = 'help'
-SCHEDULE_COMMAND = 'schedule'
-FAVOURITES_COMMAND = 'favourites'
-ADD_FAVORITES_COMMAND = 'add_favorites'
-EMPTY_FAVOURITES_COMMAND = 'clear_favorites'
+ADD_FAVORITES_TEXT = 'Маршрут "<b>{} -> {}</b>" добавлен в избранное.'
+CLEAR_FAVORITES_TEXT = (
+    'Список избранных маршрутов очищен.\n'
+    'Чтобы добавить маршрут в избранное воспользуйтесь командой /add_favorite'
+)

@@ -1,5 +1,5 @@
-import os
 import datetime as dt
+import os
 
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -59,6 +59,14 @@ CLEAR_FAVORITES_QUERY = '''
     WHERE
       id_bot_user = ?
 '''
+CHECK_LIMIT_FAVORITES_QUERY = '''
+    SELECT
+      COUNT(*) >= ? AS result
+    FROM
+      favorite
+    WHERE
+      id_bot_user = ?
+'''
 
 # Клавиатура для Telegram бота для выбора станции отправления
 STATIONS_KEYBOARD = [
@@ -92,7 +100,7 @@ END_STATION_DIRECTION = {
 }
 
 # Состояния для ConversationHandler's
-CHOICE_DIRECTION, GET_TIME_TO_TRAIN = range(2)
+CHOICE_DIRECTION, TIME_TO_TRAIN = range(2)
 ADD_FAVORITE_TO_DB = 1
 
 # Часы работы метрополитена. Интервал расширен на 0.5 часа в обе стороны
@@ -109,6 +117,7 @@ ADD_FAVORITE_COMMAND = 'add_favorite'
 CLEAR_FAVORITES_COMMAND = 'clear_favorites'
 
 # Текст сообщений для пользователя
+START_TEXT = 'Привет {}!'
 HELP_TEXT = (
     'Бот знает расписание движения поездов в метро Екатеринбурга.\n\n'
     'Команда /schedule показывает время до ближайших поездов. Для этого нужно'
@@ -128,3 +137,19 @@ CLEAR_FAVORITES_TEXT = (
     'Список избранных маршрутов очищен.\n'
     'Чтобы добавить маршрут в избранное воспользуйтесь командой /add_favorite'
 )
+FAVORITES_LIMIT_REACHED_TEXT = (
+    'У вас уже добавлено 2 маршрута в избранное и это максимум.'
+)
+WRONG_COMMAND_TEXT = 'Некорректная команда или завершите предыдущую команду.'
+CHOICE_STATION_TEXT = 'Выбери станцию:'
+CHOICE_DIRECTION_TEXT = 'Выбери направление:'
+TEXT_WITH_TIME_TWO_TRAINS = (
+    '<b>{direction}:</b>\n\n'
+    'ближайший поезд через {time_to_train_1} (мин:с)\n'
+    'следующий через {time_to_train_2} (мин:с)'
+)
+TEXT_WITH_TIME_ONE_TRAIN = (
+    '<b>{direction}:</b>\n\n'
+    'последний поезд через {time_to_train_1} (мин:с)'
+)
+TEXT_WITH_TIME_NONE = 'По расписанию поездов сегодня больше нет.'

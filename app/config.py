@@ -111,7 +111,7 @@ CLOSE_TIME_METRO = dt.time(hour=0, minute=30)
 # Команды, которые обрабатывает бот
 START_COMMAND = 'start'
 HELP_COMMAND = 'help'
-SCHEDULE_COMMAND = 'schedule'
+SCHEDULE_COMMAND = ('schedule', 'stations')  # stations - устаревшая команда
 FAVORITES_COMMAND = 'favorites'
 ADD_FAVORITE_COMMAND = 'add_favorite'
 CLEAR_FAVORITES_COMMAND = 'clear_favorites'

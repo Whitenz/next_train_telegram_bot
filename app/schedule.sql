@@ -17,11 +17,12 @@ CREATE TABLE station (
 
 CREATE TABLE favorite (
     id_favorite INTEGER PRIMARY KEY,
-    id_bot_user INTEGER NOT NULL UNIQUE,
+    id_bot_user INTEGER NOT NULL,
     from_station INTEGER NOT NULL,
     to_station INTEGER NOT NULL,
     FOREIGN KEY (from_station) REFERENCES station(id_station),
-    FOREIGN KEY (to_station) REFERENCES station(id_station)
+    FOREIGN KEY (to_station) REFERENCES station(id_station),
+    CONSTRAINT favorite_unique UNIQUE (id_bot_user, from_station, to_station)
 );
 
 INSERT INTO station (name_station)

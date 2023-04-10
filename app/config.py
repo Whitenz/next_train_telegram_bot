@@ -100,7 +100,7 @@ END_STATION_DIRECTION = {
 }
 
 # Состояния для ConversationHandler's
-CHOICE_DIRECTION, TIME_TO_TRAIN = range(2)
+CHOICE_DIRECTION, GET_TIME_TO_TRAIN, SAVE_FAVORITE = range(3)
 ADD_FAVORITE_TO_DB = 1
 
 # Часы работы метрополитена. Интервал расширен на 0.5 часа в обе стороны

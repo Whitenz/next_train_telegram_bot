@@ -52,8 +52,8 @@ async def metro_is_closed() -> bool:
     return CLOSE_TIME_METRO <= dt.datetime.now().time() <= OPEN_TIME_METRO
 
 
-async def get_schedule(from_station: str,
-                       to_station: str) -> list[Schedule, ...]:
+async def select_schedule(from_station: str,
+                          to_station: str) -> list[Schedule, ...]:
     """Функция делает запрос к БД с переданными аргументами.
     Возвращает список с объектами Schedule."""
     parameters = (from_station, to_station, await is_weekend(), LIMIT_ROW)
@@ -63,7 +63,7 @@ async def get_schedule(from_station: str,
             return await cursor.fetchall()
 
 
-async def get_text_with_time_to_train(schedule):
+async def format_text_with_time_to_train(schedule):
     if len(schedule) >= 2:
         return TEXT_WITH_TIME_TWO_TRAINS.format(
             direction=schedule[0].direction,
@@ -79,9 +79,9 @@ async def get_text_with_time_to_train(schedule):
     return TEXT_WITH_TIME_NONE
 
 
-async def add_favorite_to_db(id_bot_user: int,
-                             from_station: str,
-                             to_station: str) -> None:
+async def insert_favorite_to_db(id_bot_user: int,
+                                from_station: str,
+                                to_station: str) -> None:
     """
     Функция делает запрос к БД и добавляет избранный маршрут пользователя
     в таблицу 'favorite'.
@@ -93,7 +93,7 @@ async def add_favorite_to_db(id_bot_user: int,
         await db.commit()
 
 
-async def get_favorites_from_db(id_bot_user) -> list[tuple]:
+async def select_favorites_from_db(id_bot_user) -> list[tuple]:
     """
     Функция делает запрос к БД и получает из таблицы 'favorite' избранные
     маршруты пользователя. Возвращает их в виде списка кортежей вида
@@ -104,7 +104,7 @@ async def get_favorites_from_db(id_bot_user) -> list[tuple]:
             return await cursor.fetchall()
 
 
-async def clear_favorites_in_db(id_bot_user) -> None:
+async def delete_favorites_in_db(id_bot_user) -> None:
     """
     Функция делает запрос к БД и удаляет из таблицы 'favorite' все избранные
     маршруты пользователя.
@@ -114,7 +114,7 @@ async def clear_favorites_in_db(id_bot_user) -> None:
         await db.commit()
 
 
-async def favorites_limit_reached(id_bot_user) -> list:
+async def favorites_limited(id_bot_user) -> list:
     """
     Функция делает запрос к БД и проверяет количество избранных маршрутов в
      таблице 'favorite' для данного пользователя..
@@ -122,4 +122,5 @@ async def favorites_limit_reached(id_bot_user) -> list:
     async with aiosqlite.connect(DB_FILENAME) as db:
         async with db.execute(CHECK_LIMIT_FAVORITES_QUERY,
                               (LIMIT_ROW, id_bot_user)) as cursor:
-            return await cursor.fetchone()
+            result = await cursor.fetchone()[0]
+            return result

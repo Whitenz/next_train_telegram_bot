@@ -122,5 +122,5 @@ async def favorites_limited(id_bot_user) -> list:
     async with aiosqlite.connect(DB_FILENAME) as db:
         async with db.execute(CHECK_LIMIT_FAVORITES_QUERY,
                               (LIMIT_ROW, id_bot_user)) as cursor:
-            result = await cursor.fetchone()[0]
-            return result
+            result = await cursor.fetchone()
+            return result[0]

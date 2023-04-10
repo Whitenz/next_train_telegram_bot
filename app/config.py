@@ -100,8 +100,8 @@ END_STATION_DIRECTION = {
 }
 
 # Состояния для ConversationHandler's
-CHOICE_DIRECTION, GET_TIME_TO_TRAIN, SAVE_FAVORITE = range(3)
-ADD_FAVORITE_TO_DB = 1
+CHOICE_DIRECTION, GET_TIME_TO_TRAIN = range(2)
+NEW_FAVORITE = 1
 
 # Часы работы метрополитена. Интервал расширен на 0.5 часа в обе стороны
 # для отображения всех поездов до/после открытия/закрытия
@@ -132,7 +132,7 @@ METRO_IS_CLOSED_TEXT = (
     'Метрополитен закрыт. Часы работы с 06:00 до 00:00.\n'
     'Расписание будет доступно с 05:30.'
 )
-ADD_FAVORITES_TEXT = 'Маршрут "<b>{} -> {}</b>" добавлен в избранное.'
+ADD_FAVORITES_TEXT = 'Маршрут "<b>{} ➡ {}</b>" добавлен в избранное.'
 CLEAR_FAVORITES_TEXT = (
     'Список избранных маршрутов очищен.\n'
     'Чтобы добавить маршрут в избранное воспользуйтесь командой /add_favorite'

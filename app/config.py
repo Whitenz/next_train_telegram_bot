@@ -50,14 +50,14 @@ GET_FAVORITES_QUERY = '''
       INNER JOIN station AS st1 on st1.id_station = f.from_station
       INNER JOIN station AS st2 on st2.id_station = f.to_station
     WHERE
-      id_bot_user = ?
+      id_bot_user = ?;
 '''
 CLEAR_FAVORITES_QUERY = '''
     DELETE
     FROM
       favorite
     WHERE
-      id_bot_user = ?
+      id_bot_user = ?;
 '''
 CHECK_LIMIT_FAVORITES_QUERY = '''
     SELECT
@@ -65,7 +65,14 @@ CHECK_LIMIT_FAVORITES_QUERY = '''
     FROM
       favorite
     WHERE
-      id_bot_user = ?
+      id_bot_user = ?;
+'''
+ADD_USER_QUERY = '''
+    INSERT OR IGNORE INTO
+      user (id_bot_user, first_name, last_name, username, is_bot)
+    VALUES (
+        ?, ?, ?, ?, ?
+    );
 '''
 
 # Клавиатура для Telegram бота для выбора станции отправления

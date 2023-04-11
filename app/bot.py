@@ -19,8 +19,9 @@ from app.messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITES_TEXT,
                           WRONG_COMMAND_TEXT)
 from app.services import (delete_favorites_in_db, favorites_limited,
                           format_text_with_time_to_train,
-                          insert_favorite_to_db, metro_is_closed,
-                          select_favorites_from_db, select_schedule)
+                          insert_favorite_to_db, insert_user_to_db,
+                          metro_is_closed, select_favorites_from_db,
+                          select_schedule)
 
 # Подключаем логгер
 logging.basicConfig(
@@ -34,6 +35,7 @@ async def start(update: Update, _) -> None:
     """Обработка команды /start. Отправляет приветственное сообщение."""
     bot_user = update.effective_user
     text = START_TEXT.format(bot_user.first_name) + '\n\n' + HELP_TEXT
+    await insert_user_to_db(bot_user)
     await update.message.reply_text(text)
 
 

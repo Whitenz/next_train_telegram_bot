@@ -25,16 +25,24 @@ CREATE TABLE favorite (
     CONSTRAINT favorite_unique UNIQUE (id_bot_user, from_station, to_station)
 );
 
-INSERT INTO station (name_station)
-VALUES ('Космонавтов'),
-       ('Уралмаш'),
-       ('Машиностроителей'),
-       ('Уральская'),
-       ('Динамо'),
-       ('Площадь 1905г'),
-       ('Геологическая'),
-       ('Чкаловская'),
-       ('Ботаническая');
+CREATE TABLE user (
+    id_bot_user INTEGER PRIMARY KEY,
+    first_name VARCHAR NOT NULL,
+    last_name VARCHAR,
+    username VARCHAR,
+    is_bot BOOLEAN NOT NULL
+);
+
+INSERT INTO station (id_station, name_station)
+VALUES (1, 'Космонавтов'),
+       (2, 'Уралмаш'),
+       (3, 'Машиностроителей'),
+       (4, 'Уральская'),
+       (5, 'Динамо'),
+       (6, 'Площадь 1905г'),
+       (7, 'Геологическая'),
+       (8, 'Чкаловская'),
+       (9, 'Ботаническая');
 
 INSERT INTO schedule (from_station, to_station, is_weekend, departure_time)
 VALUES  (1, 9, 0, '06:05'),

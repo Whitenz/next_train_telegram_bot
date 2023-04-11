@@ -61,7 +61,6 @@ async def schedule_directions(update: Update,
     query = update.callback_query
     await query.answer()
     from_station = query.data
-    context.chat_data['from_station'] = from_station
 
     if from_station in END_STATION_DIRECTION:
         to_station = END_STATION_DIRECTION[from_station]
@@ -122,13 +121,13 @@ async def favorite_directions(update: Update,
     query = update.callback_query
     await query.answer()
     from_station = query.data
-    context.chat_data['from_station'] = from_station
 
     if from_station in END_STATION_DIRECTION:
         to_station = END_STATION_DIRECTION[from_station]
         await save_favorite(update, from_station, to_station)
         return ConversationHandler.END
 
+    context.chat_data['from_station'] = from_station
     await query.edit_message_text(text=CHOICE_DIRECTION_TEXT,
                                   reply_markup=DIRECTION_REPLY_MARKUP)
     return NEW_FAVORITE

@@ -1,12 +1,14 @@
 import datetime as dt
 from dataclasses import dataclass
+from typing import Optional
 
 import aiosqlite
+from telegram import User
 
-from app.config import (ADD_FAVORITE_QUERY, CHECK_LIMIT_FAVORITES_QUERY,
-                        CLEAR_FAVORITES_QUERY, CLOSE_TIME_METRO, DB_FILENAME,
-                        GET_FAVORITES_QUERY, LIMIT_ROW, OPEN_TIME_METRO,
-                        TIME_TO_TRAIN_QUERY)
+from app.config import (ADD_FAVORITE_QUERY, ADD_USER_QUERY,
+                        CHECK_LIMIT_FAVORITES_QUERY, CLEAR_FAVORITES_QUERY,
+                        CLOSE_TIME_METRO, DB_FILENAME, GET_FAVORITES_QUERY,
+                        LIMIT_ROW, OPEN_TIME_METRO, TIME_TO_TRAIN_QUERY)
 from app.messages import (TEXT_WITH_TIME_NONE, TEXT_WITH_TIME_ONE_TRAIN,
                           TEXT_WITH_TIME_TWO_TRAINS)
 
@@ -118,3 +120,15 @@ async def favorites_limited(id_bot_user) -> list:
                               (LIMIT_ROW, id_bot_user)) as cursor:
             result = await cursor.fetchone()
             return result[0]
+
+
+async def insert_user_to_db(bot_user: Optional[User]) -> None:
+    """
+    Функция делает запрос к БД и добавляет нового пользователя бота в таблицу
+     'user'.
+    """
+    async with aiosqlite.connect(DB_FILENAME) as db:
+        parameters = (bot_user.id, bot_user.first_name, bot_user.last_name,
+                      bot_user.username, bot_user.is_bot)
+        await db.execute(ADD_USER_QUERY, parameters)
+        await db.commit()

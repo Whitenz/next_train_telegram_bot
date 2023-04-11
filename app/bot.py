@@ -163,6 +163,9 @@ async def favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     Обработчик команды /favorites.
     Отправляет время до ближайших поездов по избранным маршрутам пользователя.
     """
+    if await metro_is_closed():
+        await update.message.reply_text(METRO_IS_CLOSED_TEXT)
+        return
     id_bot_user = update.message.from_user.id
     if user_favorites := await select_favorites_from_db(id_bot_user):
         schedules = [await select_schedule(*favorite)

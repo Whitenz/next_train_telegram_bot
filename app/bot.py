@@ -5,23 +5,22 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
                           CommandHandler, ContextTypes, ConversationHandler,
-                          MessageHandler, filters)
+                          filters, MessageHandler)
 
-from app.config import (BOT_TOKEN, CHOICE_DIRECTION, DIRECTION_REPLY_MARKUP,
-                        END_STATION_DIRECTION, GET_TIME_TO_TRAIN, NEW_FAVORITE,
-                        STATIONS_REPLY_MARKUP)
-from app.messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITES_TEXT,
-                          CHOICE_DIRECTION_TEXT, CHOICE_STATION_TEXT,
-                          CLEAR_FAVORITES_COMMAND, CLEAR_FAVORITES_TEXT,
-                          FAVORITES_COMMAND, FAVORITES_LIMIT_REACHED_TEXT,
-                          HELP_COMMAND, HELP_TEXT, METRO_IS_CLOSED_TEXT,
-                          SCHEDULE_COMMAND, START_COMMAND, START_TEXT,
-                          WRONG_COMMAND_TEXT)
-from app.services import (delete_favorites_in_db, favorites_limited,
-                          format_text_with_time_to_train,
-                          insert_favorite_to_db, insert_user_to_db,
-                          metro_is_closed, select_favorites_from_db,
-                          select_schedule)
+from config import (BOT_TOKEN, CHOICE_DIRECTION, DIRECTION_REPLY_MARKUP,
+                    END_STATION_DIRECTION, GET_TIME_TO_TRAIN, NEW_FAVORITE,
+                    STATIONS_REPLY_MARKUP)
+from messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITES_TEXT,
+                      CHOICE_DIRECTION_TEXT, CHOICE_STATION_TEXT,
+                      CLEAR_FAVORITES_COMMAND, CLEAR_FAVORITES_TEXT,
+                      FAVORITES_COMMAND, FAVORITES_LIMIT_REACHED_TEXT,
+                      HELP_COMMAND, HELP_TEXT, METRO_IS_CLOSED_TEXT,
+                      SCHEDULE_COMMAND, START_COMMAND, START_TEXT,
+                      WRONG_COMMAND_TEXT)
+from services import (delete_favorites_in_db, favorites_limited,
+                      format_text_with_time_to_train, insert_favorite_to_db,
+                      insert_user_to_db, metro_is_closed,
+                      select_favorites_from_db, select_schedule)
 
 # Подключаем логгер
 logging.basicConfig(

@@ -5,12 +5,12 @@ from typing import Optional
 import aiosqlite
 from telegram import User
 
-from app.config import (ADD_FAVORITE_QUERY, ADD_USER_QUERY,
-                        CHECK_LIMIT_FAVORITES_QUERY, CLEAR_FAVORITES_QUERY,
-                        CLOSE_TIME_METRO, DB_FILENAME, GET_FAVORITES_QUERY,
-                        LIMIT_ROW, OPEN_TIME_METRO, TIME_TO_TRAIN_QUERY)
-from app.messages import (TEXT_WITH_TIME_NONE, TEXT_WITH_TIME_ONE_TRAIN,
-                          TEXT_WITH_TIME_TWO_TRAINS)
+from config import (ADD_FAVORITE_QUERY, ADD_USER_QUERY,
+                    CHECK_LIMIT_FAVORITES_QUERY, CLEAR_FAVORITES_QUERY,
+                    CLOSE_TIME_METRO, DB_FILENAME, GET_FAVORITES_QUERY,
+                    LIMIT_ROW, OPEN_TIME_METRO, TIME_TO_TRAIN_QUERY)
+from messages import (TEXT_WITH_TIME_NONE, TEXT_WITH_TIME_ONE_TRAIN,
+                      TEXT_WITH_TIME_TWO_TRAINS)
 
 
 @dataclass

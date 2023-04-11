@@ -3,18 +3,22 @@ from dataclasses import dataclass
 
 import aiosqlite
 
-from config import (ADD_FAVORITE_QUERY,
-                    CHECK_LIMIT_FAVORITES_QUERY,
-                    CLEAR_FAVORITES_QUERY,
-                    CLOSE_TIME_METRO,
-                    DB_FILENAME,
-                    GET_FAVORITES_QUERY,
-                    LIMIT_ROW,
-                    OPEN_TIME_METRO,
-                    TIME_TO_TRAIN_QUERY,
-                    TEXT_WITH_TIME_ONE_TRAIN,
-                    TEXT_WITH_TIME_TWO_TRAINS,
-                    TEXT_WITH_TIME_NONE)
+from config import (
+    ADD_FAVORITE_QUERY,
+    CHECK_LIMIT_FAVORITES_QUERY,
+    CLEAR_FAVORITES_QUERY,
+    CLOSE_TIME_METRO,
+    DB_FILENAME,
+    GET_FAVORITES_QUERY,
+    LIMIT_ROW,
+    OPEN_TIME_METRO,
+    TIME_TO_TRAIN_QUERY
+)
+from messages import (
+    TEXT_WITH_TIME_NONE,
+    TEXT_WITH_TIME_ONE_TRAIN,
+    TEXT_WITH_TIME_TWO_TRAINS
+)
 
 
 @dataclass
@@ -71,7 +75,7 @@ async def format_text_with_time_to_train(schedule):
             time_to_train_2=schedule[1].time_to_train,
 
         )
-    elif len(schedule) == 1:
+    if len(schedule) == 1:
         return TEXT_WITH_TIME_ONE_TRAIN.format(
             direction=schedule[0].direction,
             time_to_train_1=schedule[0].time_to_train

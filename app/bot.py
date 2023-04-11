@@ -193,10 +193,8 @@ async def wrong_command(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Обработчик ошибочных команд.
     Функция обрабатывает все сообщения и команды, если бот их не должен
-     обрабатывать в данный момент, а само сообщение удаляет. Находясь в
-     ConversationHandler бот принимает только ввод с предложенных кнопок.
+     обрабатывать в данный момент, а само сообщение удаляет.
     """
-    await update.message.delete()
     await update.message.reply_text(WRONG_COMMAND_TEXT)
 
 
@@ -226,6 +224,7 @@ def main() -> None:
     application.add_handler(CommandHandler(FAVORITES_COMMAND, favorites))
     application.add_handler(CommandHandler(CLEAR_FAVORITES_COMMAND,
                                            clear_favorites))
+    application.add_handler(MessageHandler(filters.ALL, wrong_command))
     application.run_polling()
 
 

@@ -9,7 +9,8 @@ load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
 # Параметры и запросы для работы с SQL БД
-DB_FILENAME = 'schedule.sqlite3'
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+DB_FILENAME = os.path.join(BASE_DIR, 'data', 'schedule.sqlite3')
 LIMIT_ROW = 2  # берем из БД для бота только два ближайших поезда
 TIME_TO_TRAIN_QUERY = '''
     SELECT

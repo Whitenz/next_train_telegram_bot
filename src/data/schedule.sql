@@ -30,7 +30,8 @@ CREATE TABLE user (
     first_name VARCHAR NOT NULL,
     last_name VARCHAR,
     username VARCHAR,
-    is_bot BOOLEAN NOT NULL
+    is_bot BOOLEAN NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 INSERT INTO station (id_station, name_station)

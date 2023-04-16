@@ -12,13 +12,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DB_FILENAME = os.path.join(BASE_DIR, 'data', 'schedule.sqlite3')
 LIMIT_ROW = 2  # берем из БД для бота только два ближайших поезда
 
-# Словарь для выбора направления на конечных станциях, где 'from_station' ключ,
-# а 'to_station' значение (добавлен, т.к. нет смысла выбирать пользователю)
-END_STATION_DIRECTION = {
-    'Космонавтов': 'Ботаническая',
-    'Ботаническая': 'Космонавтов',
-}
-
 # Состояния для ConversationHandler's
 CHOICE_DIRECTION, GET_TIME_TO_TRAIN = range(2)
 NEW_FAVORITE = 1

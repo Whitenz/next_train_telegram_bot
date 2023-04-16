@@ -7,12 +7,13 @@ from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
                           CommandHandler, ContextTypes, ConversationHandler,
                           MessageHandler, filters)
 
-from .config import (BOT_TOKEN, CHOICE_DIRECTION, END_STATION_DIRECTION,
-                     GET_TIME_TO_TRAIN, NEW_FAVORITE)
+from .config import (BOT_TOKEN, CHOICE_DIRECTION, GET_TIME_TO_TRAIN,
+                     NEW_FAVORITE)
 from .db import (delete_favorites_in_db, favorites_limited,
                  insert_favorite_to_db, insert_user_to_db,
                  select_favorites_from_db, select_schedule)
-from .keyboards import DIRECTION_REPLY_MARKUP, STATIONS_REPLY_MARKUP
+from .keyboards import (DIRECTION_REPLY_MARKUP, END_STATION_DIRECTION,
+                        STATIONS_REPLY_MARKUP)
 from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITES_TEXT,
                        CHOICE_DIRECTION_TEXT, CHOICE_STATION_TEXT,
                        CLEAR_FAVORITES_COMMAND, CLEAR_FAVORITES_TEXT,

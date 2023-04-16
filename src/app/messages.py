@@ -35,8 +35,8 @@ FAVORITES_LIMIT_REACHED_TEXT = (
     'У вас уже добавлено 2 маршрута в избранное и это максимум.'
 )
 WRONG_COMMAND_TEXT = 'Некорректная команда или завершите предыдущую команду.'
-CHOICE_STATION_TEXT = 'Выберите станцию:'
-CHOICE_DIRECTION_TEXT = 'Выберите направление:'
+CHOICE_STATION_TEXT = 'Выберите станцию отправления:'
+CHOICE_DIRECTION_TEXT = 'Выберите конечную станцию направления:'
 TEXT_WITH_TIME_TWO_TRAINS = (
     '<b>{direction}:</b>\n\n'
     'ближайший поезд через {time_to_train_1} (мин:с)\n'

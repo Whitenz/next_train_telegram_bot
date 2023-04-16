@@ -1,31 +1,85 @@
-import datetime as dt
-from dataclasses import dataclass
+import sqlite3
 from typing import Optional
 
 import aiosqlite
 from telegram import User
 
-from .config import (ADD_FAVORITE_QUERY, ADD_USER_QUERY,
-                     CHECK_LIMIT_FAVORITES_QUERY, CLEAR_FAVORITES_QUERY,
-                     CLOSE_TIME_METRO, DB_FILENAME, GET_FAVORITES_QUERY,
-                     LIMIT_ROW, OPEN_TIME_METRO, TIME_TO_TRAIN_QUERY)
-from .messages import (TEXT_WITH_TIME_NONE, TEXT_WITH_TIME_ONE_TRAIN,
-                       TEXT_WITH_TIME_TWO_TRAINS)
+from .config import DB_FILENAME, LIMIT_ROW
+from .schedule import Schedule
+from .utils import is_weekend
 
-
-@dataclass
-class Schedule:
-    from_station: str
-    to_station: str
-    time_to_train: str
-
-    def __post_init__(self):
-        datetime_obj = dt.datetime.strptime(self.time_to_train, '%H:%M:%S')
-        self.time_to_train = datetime_obj.strftime('%M:%S')
-
-    @property
-    def direction(self):
-        return f'{self.from_station} ➡ {self.to_station}'
+TIME_TO_TRAIN_QUERY = '''
+    SELECT
+      st1.name_station AS from_station,
+      st2.name_station AS to_station,
+      time(
+          strftime('%s', sc.departure_time) - strftime('%s', 'now', 'localtime'),
+          'unixepoch'
+      ) AS time_to_train
+    FROM
+      schedule AS sc
+      INNER JOIN station AS st1 ON st1.id_station = sc.from_station
+      INNER JOIN station AS st2 ON st2.id_station = sc.to_station
+    WHERE
+      st1.name_station = ?
+      AND st2.name_station = ?
+      AND sc.is_weekend IS ?
+      AND time_to_train < time('00:25')
+    ORDER BY
+      time_to_train
+    LIMIT
+      ?;
+'''
+ADD_FAVORITE_QUERY = '''
+    INSERT OR IGNORE INTO
+      favorite (id_bot_user, from_station, to_station)
+    VALUES (
+      ?,
+      (SELECT id_station FROM station WHERE name_station = ?),
+      (SELECT id_station FROM station WHERE name_station = ?)
+    );
+'''
+GET_FAVORITES_QUERY = '''
+    SELECT
+      st1.name_station AS from_station,
+      st2.name_station AS to_station
+    FROM
+      favorite AS f
+      INNER JOIN station AS st1 on st1.id_station = f.from_station
+      INNER JOIN station AS st2 on st2.id_station = f.to_station
+    WHERE
+      id_bot_user = ?;
+'''
+CLEAR_FAVORITES_QUERY = '''
+    DELETE
+    FROM
+      favorite
+    WHERE
+      id_bot_user = ?;
+'''
+CHECK_LIMIT_FAVORITES_QUERY = '''
+    SELECT
+      COUNT(*) >= ? AS result
+    FROM
+      favorite
+    WHERE
+      id_bot_user = ?;
+'''
+ADD_USER_QUERY = '''
+    INSERT OR IGNORE INTO
+      user (id_bot_user, first_name, last_name, username, is_bot)
+    VALUES (
+        ?, ?, ?, ?, ?
+    );
+'''
+GET_STATIONS_QUERY = '''
+    SELECT 
+      id_station, name_station
+    FROM
+     station
+    ORDER BY
+     id_station;
+'''
 
 
 def schedule_rowfactory(_, row):
@@ -34,18 +88,6 @@ def schedule_rowfactory(_, row):
      дата-класса Schedule
     """
     return Schedule(*row)
-
-
-async def is_weekend() -> bool:
-    """Функция проверяет выходной сейчас день или нет."""
-    today = dt.datetime.now()
-    delta = dt.timedelta(minutes=30)
-    return (today - delta).isoweekday() > 5
-
-
-async def metro_is_closed() -> bool:
-    """Функция проверяет закрыто ли метро в соответствии с часами работы."""
-    return CLOSE_TIME_METRO <= dt.datetime.now().time() <= OPEN_TIME_METRO
 
 
 async def select_schedule(from_station: str,
@@ -57,22 +99,6 @@ async def select_schedule(from_station: str,
         db.row_factory = schedule_rowfactory
         async with db.execute(TIME_TO_TRAIN_QUERY, parameters) as cursor:
             return await cursor.fetchall()
-
-
-async def format_text_with_time_to_train(schedule):
-    if len(schedule) >= 2:
-        return TEXT_WITH_TIME_TWO_TRAINS.format(
-            direction=schedule[0].direction,
-            time_to_train_1=schedule[0].time_to_train,
-            time_to_train_2=schedule[1].time_to_train,
-
-        )
-    if len(schedule) == 1:
-        return TEXT_WITH_TIME_ONE_TRAIN.format(
-            direction=schedule[0].direction,
-            time_to_train_1=schedule[0].time_to_train
-        )
-    return TEXT_WITH_TIME_NONE
 
 
 async def insert_favorite_to_db(id_bot_user: int,
@@ -132,3 +158,13 @@ async def insert_user_to_db(bot_user: Optional[User]) -> None:
                       bot_user.username, bot_user.is_bot)
         await db.execute(ADD_USER_QUERY, parameters)
         await db.commit()
+
+
+def get_stations_from_db() -> list[tuple, ...]:
+    """
+    Функция делает запрос к БД и возвращает список кортежей с id и именем
+     станций.
+    """
+    with sqlite3.connect(DB_FILENAME) as db:
+        cursor = db.execute(GET_STATIONS_QUERY)
+        return cursor.fetchall()

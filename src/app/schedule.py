@@ -1,3 +1,5 @@
+"""Модуль определяет класс для объектов расписания движения поездов."""
+
 import datetime as dt
 from dataclasses import dataclass
 

@@ -73,7 +73,7 @@ ADD_USER_QUERY = '''
     );
 '''
 GET_STATIONS_QUERY = '''
-    SELECT 
+    SELECT
       id_station, name_station
     FROM
      station

@@ -34,7 +34,7 @@ CLEAR_FAVORITES_TEXT = (
 FAVORITES_LIMIT_REACHED_TEXT = (
     'У вас уже добавлено 2 маршрута в избранное и это максимум.'
 )
-WRONG_COMMAND_TEXT = 'Некорректная команда или завершите предыдущую команду.'
+WRONG_COMMAND_TEXT = 'Некорректная команда.'
 CHOICE_STATION_TEXT = 'Выберите станцию отправления:'
 CHOICE_DIRECTION_TEXT = 'Выберите конечную станцию направления:'
 TEXT_WITH_TIME_TWO_TRAINS = (
@@ -47,3 +47,4 @@ TEXT_WITH_TIME_ONE_TRAIN = (
     'последний поезд через {time_to_train_1} (мин:с)'
 )
 TEXT_WITH_TIME_NONE = 'По расписанию поездов сегодня больше нет.'
+CONVERSATION_TIMEOUT_TEXT = 'Время для выбора станций вышло.'

@@ -24,7 +24,7 @@ TIME_TO_TRAIN_QUERY = '''
       st1.name_station = ?
       AND st2.name_station = ?
       AND sc.is_weekend IS ?
-      AND time_to_train < time('00:25')
+      AND time_to_train < time('01:00')
     ORDER BY
       time_to_train
     LIMIT

@@ -48,7 +48,9 @@ GET_FAVORITES_QUERY = '''
       INNER JOIN station AS st1 on st1.id_station = f.from_station
       INNER JOIN station AS st2 on st2.id_station = f.to_station
     WHERE
-      id_bot_user = ?;
+      f.id_bot_user = ?
+    ORDER BY 
+      f.id_favorite;
 '''
 CLEAR_FAVORITES_QUERY = '''
     DELETE
@@ -61,9 +63,9 @@ CHECK_LIMIT_FAVORITES_QUERY = '''
     SELECT
       COUNT(*) >= ? AS result
     FROM
-      favorite
+      favorite AS f
     WHERE
-      id_bot_user = ?;
+      f.id_bot_user = ?;
 '''
 ADD_USER_QUERY = '''
     INSERT OR IGNORE INTO
@@ -76,9 +78,9 @@ GET_STATIONS_QUERY = '''
     SELECT
       id_station, name_station
     FROM
-     station
+     station AS s
     ORDER BY
-     id_station;
+     s.id_station;
 '''
 
 

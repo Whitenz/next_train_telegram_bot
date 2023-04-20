@@ -3,7 +3,7 @@
 # Команды, которые обрабатывает бот
 START_COMMAND = 'start'
 HELP_COMMAND = 'help'
-SCHEDULE_COMMAND = ('schedule', 'stations')  # stations - устаревшая команда
+SCHEDULE_COMMAND = 'schedule'
 FAVORITES_COMMAND = 'favorites'
 ADD_FAVORITE_COMMAND = 'add_favorite'
 CLEAR_FAVORITES_COMMAND = 'clear_favorites'

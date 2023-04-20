@@ -1,13 +1,13 @@
 import logging
 
-from telegram import Message, Update
+from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
                           CommandHandler, ContextTypes, ConversationHandler,
                           MessageHandler, filters)
 
 from .config import (BOT_TOKEN, CHOICE_DIRECTION, CONVERSATION_TIMEOUT,
-                     GET_TIME_TO_TRAIN, NEW_FAVORITE)
+                     FINAL_CONV)
 from .db import (delete_favorites_in_db, favorites_limited,
                  insert_favorite_to_db, insert_user_to_db,
                  select_favorites_from_db, select_schedule)
@@ -42,57 +42,76 @@ async def help_command(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(HELP_TEXT)
 
 
-async def schedule(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Обработка команды /schedule. Начало диалога.
-    Если метрополитен открыт, то отправляет пользователю список станций
-    отправления поездов для получения времени до ближайшего поезда.
+    Обработчик команд /schedule и /add_favorite.
+    Начало диалога. Отправляет список станций метрополитена в виде кнопок.
+    Если получена команда 'schedule' и метрополитен открыт, то отправляет
+     список станций.
+    Если получена команда 'add_favorite' и список избранного пользователя не
+     полон, то также отправляет список станций.
     """
-    if await metro_is_closed():
+    command = update.message.text
+    id_bot_user = update.message.from_user.id
+
+    if SCHEDULE_COMMAND in command and await metro_is_closed():
         await update.message.reply_text(METRO_IS_CLOSED_TEXT)
         return ConversationHandler.END
-    context.chat_data['bot_message'] = await stations(update)
+
+    if ADD_FAVORITE_COMMAND in command and await favorites_limited(id_bot_user):
+        await update.message.reply_text(FAVORITES_LIMIT_REACHED_TEXT)
+        return ConversationHandler.END
+
+    bot_message = await update.message.reply_text(
+        CHOICE_STATION_TEXT, reply_markup=STATIONS_REPLY_MARKUP
+    )
+    context.chat_data['bot_message'] = bot_message
+    context.chat_data['command'] = command
     return CHOICE_DIRECTION
 
 
-async def schedule_directions(update: Update,
-                              context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Этап диалога /schedule для выбора направления движения поездов."""
+async def directions(update: Update,
+                     context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Этап диалога для выбора направления движения поездов."""
     query = update.callback_query
     await query.answer()
     from_station = query.data
+    command = context.chat_data.get('command')
 
     if from_station in END_STATION_DIRECTION:
         to_station = END_STATION_DIRECTION[from_station]
-        await send_time_to_train(update, from_station, to_station)
+        if SCHEDULE_COMMAND in command:
+            await send_time_to_train(update, from_station, to_station)
+        if ADD_FAVORITE_COMMAND in command:
+            await save_favorite(update, from_station, to_station)
         context.chat_data.clear()
         return ConversationHandler.END
 
     context.chat_data['from_station'] = from_station
     await query.edit_message_text(text=CHOICE_DIRECTION_TEXT,
                                   reply_markup=DIRECTION_REPLY_MARKUP)
-    return GET_TIME_TO_TRAIN
+    return FINAL_CONV
 
 
-async def time_to_train(update: Update,
+async def complete_conv(update: Update,
                         context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Заключительный этап диалога /schedule. Отправляет время до поездов."""
+    """
+    Заключительный этап диалога команд /schedule и /add_favorite.
+    Если была получена команда /schedule, то пользователю будет отправлено
+     время до ближайших поездов.
+    Если получена команда /add_favorite, то сохраняет избранным маршрут в БД.
+    """
     query = update.callback_query
     await query.answer()
+    command = context.chat_data.get('command')
     from_station = context.chat_data.get('from_station')
     to_station = query.data
-    await send_time_to_train(update, from_station, to_station)
+    if SCHEDULE_COMMAND in command:
+        await send_time_to_train(update, from_station, to_station)
+    if ADD_FAVORITE_COMMAND in command:
+        await save_favorite(update, from_station, to_station)
     context.chat_data.clear()
     return ConversationHandler.END
-
-
-async def stations(update: Update) -> Message:
-    """
-    Отправляет список станций список станций метрополитена в форме кнопок.
-    Возвращает объект Message - сообщение, которое бот отправил пользователю.
-    """
-    return await update.message.reply_text(CHOICE_STATION_TEXT,
-                                           reply_markup=STATIONS_REPLY_MARKUP)
 
 
 async def send_time_to_train(update: Update,
@@ -104,58 +123,10 @@ async def send_time_to_train(update: Update,
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 
-async def add_favorite(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Обработчик команды /add_favorite. Начало диалога.
-    Если пользователь не достиг лимита записей в избранное, то отправляет
-    список станций метрополитена для сохранения нового избранного маршрута.
-    """
-    id_bot_user = update.message.from_user.id
-    if await favorites_limited(id_bot_user):
-        await update.message.reply_text(FAVORITES_LIMIT_REACHED_TEXT)
-        return ConversationHandler.END
-    context.chat_data['bot_message'] = await stations(update)
-    return CHOICE_DIRECTION
-
-
-async def favorite_directions(update: Update,
-                              context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Этап диалога /add_favorite для выбора направления движения поездов."""
-    query = update.callback_query
-    await query.answer()
-    from_station = query.data
-
-    if from_station in END_STATION_DIRECTION:
-        to_station = END_STATION_DIRECTION[from_station]
-        await save_favorite(update, from_station, to_station)
-        context.chat_data.clear()
-        return ConversationHandler.END
-
-    context.chat_data['from_station'] = from_station
-    await query.edit_message_text(text=CHOICE_DIRECTION_TEXT,
-                                  reply_markup=DIRECTION_REPLY_MARKUP)
-    return NEW_FAVORITE
-
-
-async def new_favorite(update: Update,
-                       context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Заключительный этап диалога /add_favorite.
-    Добавляет в список избранного пользователя новый маршрут.
-    """
-    query = update.callback_query
-    await query.answer()
-    from_station = context.chat_data.get('from_station')
-    to_station = query.data
-    await save_favorite(update, from_station, to_station)
-    context.chat_data.clear()
-    return ConversationHandler.END
-
-
 async def save_favorite(update: Update,
                         from_station: str,
                         to_station: str) -> None:
-    """Функция проводить запись в БД и отправляет ответ пользователю."""
+    """Функция сохраняет маршрут в БД и отправляет ответ пользователю."""
     query = update.callback_query
     id_bot_user = query.from_user.id
     text = ADD_FAVORITES_TEXT.format(from_station, to_station)
@@ -218,30 +189,20 @@ def start_bot() -> None:
     application = ApplicationBuilder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler(START_COMMAND, start))
     application.add_handler(CommandHandler(HELP_COMMAND, help_command))
-    shedule_handler = ConversationHandler(
-        entry_points=[CommandHandler(SCHEDULE_COMMAND, schedule)],
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler((SCHEDULE_COMMAND, ADD_FAVORITE_COMMAND),
+                                     stations)],
         states={
-            CHOICE_DIRECTION: [CallbackQueryHandler(schedule_directions)],
-            GET_TIME_TO_TRAIN: [CallbackQueryHandler(time_to_train)],
+            CHOICE_DIRECTION: [CallbackQueryHandler(directions)],
+            FINAL_CONV: [CallbackQueryHandler(complete_conv)],
             ConversationHandler.TIMEOUT: [MessageHandler(filters.ALL, timeout),
                                           CallbackQueryHandler(timeout)]
         },
         fallbacks=[MessageHandler(filters.ALL, wrong_command)],
         conversation_timeout=CONVERSATION_TIMEOUT
     )
-    add_favorite_handler = ConversationHandler(
-        entry_points=[CommandHandler(ADD_FAVORITE_COMMAND, add_favorite)],
-        states={
-            CHOICE_DIRECTION: [CallbackQueryHandler(favorite_directions)],
-            NEW_FAVORITE: [CallbackQueryHandler(new_favorite)],
-            ConversationHandler.TIMEOUT: [MessageHandler(filters.ALL, timeout),
-                                          CallbackQueryHandler(timeout)]
-        },
-        fallbacks=[MessageHandler(filters.ALL, wrong_command)],
-        conversation_timeout=CONVERSATION_TIMEOUT
-    )
-    application.add_handler(shedule_handler)
-    application.add_handler(add_favorite_handler)
+
+    application.add_handler(conv_handler)
     application.add_handler(CommandHandler(FAVORITES_COMMAND, favorites))
     application.add_handler(CommandHandler(CLEAR_FAVORITES_COMMAND,
                                            clear_favorites))

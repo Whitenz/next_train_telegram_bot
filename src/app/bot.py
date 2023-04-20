@@ -1,10 +1,12 @@
 import logging
+from warnings import filterwarnings
 
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
                           CommandHandler, ContextTypes, ConversationHandler,
                           MessageHandler, filters)
+from telegram.warnings import PTBUserWarning
 
 from .config import (BOT_TOKEN, CHOICE_DIRECTION, CONVERSATION_TIMEOUT,
                      FINAL_STAGE)
@@ -21,6 +23,10 @@ from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITES_TEXT,
                        METRO_IS_CLOSED_TEXT, SCHEDULE_COMMAND, START_COMMAND,
                        START_TEXT, WRONG_COMMAND_TEXT)
 from .utils import format_text_with_time_to_train, metro_is_closed
+
+filterwarnings(action='ignore',
+               message=r'.*CallbackQueryHandler',
+               category=PTBUserWarning)
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",

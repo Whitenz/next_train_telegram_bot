@@ -12,7 +12,7 @@ DB_FILENAME = os.path.join(BASE_DIR, 'data', 'schedule.sqlite3')
 LIMIT_ROW = 2  # берем из БД для бота только два ближайших поезда
 
 # Параметры для ConversationHandler's
-CHOICE_DIRECTION, FINAL_CONV = range(2)
+CHOICE_DIRECTION, FINAL_STAGE = range(2)
 CONVERSATION_TIMEOUT = 60 * 3  # время ожидания ответа от пользователя (сек)
 
 # Часы работы метрополитена. Интервал расширен на 0.5 часа в обе стороны

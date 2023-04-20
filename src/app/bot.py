@@ -7,7 +7,7 @@ from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
                           MessageHandler, filters)
 
 from .config import (BOT_TOKEN, CHOICE_DIRECTION, CONVERSATION_TIMEOUT,
-                     FINAL_CONV)
+                     FINAL_STAGE)
 from .db import (delete_favorites_in_db, favorites_limited,
                  insert_favorite_to_db, insert_user_to_db,
                  select_favorites_from_db, select_schedule)
@@ -53,21 +53,18 @@ async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     command = update.message.text
     id_bot_user = update.message.from_user.id
-
     if SCHEDULE_COMMAND in command and await metro_is_closed():
         await update.message.reply_text(METRO_IS_CLOSED_TEXT)
-        return ConversationHandler.END
-
-    if ADD_FAVORITE_COMMAND in command and await favorites_limited(id_bot_user):
+    elif ADD_FAVORITE_COMMAND in command and await favorites_limited(id_bot_user):
         await update.message.reply_text(FAVORITES_LIMIT_REACHED_TEXT)
-        return ConversationHandler.END
-
-    bot_message = await update.message.reply_text(
-        CHOICE_STATION_TEXT, reply_markup=STATIONS_REPLY_MARKUP
-    )
-    context.chat_data['bot_message'] = bot_message
-    context.chat_data['command'] = command
-    return CHOICE_DIRECTION
+    else:
+        bot_message = await update.message.reply_text(
+            CHOICE_STATION_TEXT, reply_markup=STATIONS_REPLY_MARKUP
+        )
+        context.chat_data['bot_message'] = bot_message
+        context.chat_data['command'] = command
+        return CHOICE_DIRECTION
+    return ConversationHandler.END
 
 
 async def directions(update: Update,
@@ -78,8 +75,7 @@ async def directions(update: Update,
     from_station = query.data
     command = context.chat_data.get('command')
 
-    if from_station in END_STATION_DIRECTION:
-        to_station = END_STATION_DIRECTION[from_station]
+    if to_station := END_STATION_DIRECTION.get(from_station):
         if SCHEDULE_COMMAND in command:
             await send_time_to_train(update, from_station, to_station)
         if ADD_FAVORITE_COMMAND in command:
@@ -90,7 +86,7 @@ async def directions(update: Update,
     context.chat_data['from_station'] = from_station
     await query.edit_message_text(text=CHOICE_DIRECTION_TEXT,
                                   reply_markup=DIRECTION_REPLY_MARKUP)
-    return FINAL_CONV
+    return FINAL_STAGE
 
 
 async def complete_conv(update: Update,
@@ -194,7 +190,7 @@ def start_bot() -> None:
                                      stations)],
         states={
             CHOICE_DIRECTION: [CallbackQueryHandler(directions)],
-            FINAL_CONV: [CallbackQueryHandler(complete_conv)],
+            FINAL_STAGE: [CallbackQueryHandler(complete_conv)],
             ConversationHandler.TIMEOUT: [MessageHandler(filters.ALL, timeout),
                                           CallbackQueryHandler(timeout)]
         },

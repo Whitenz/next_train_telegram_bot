@@ -49,7 +49,7 @@ GET_FAVORITES_QUERY = '''
       INNER JOIN station AS st2 on st2.id_station = f.to_station
     WHERE
       f.id_bot_user = ?
-    ORDER BY 
+    ORDER BY
       f.id_favorite;
 '''
 CLEAR_FAVORITES_QUERY = '''

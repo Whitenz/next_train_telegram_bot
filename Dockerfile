@@ -4,7 +4,7 @@ ENV TZ="Asia/Yekaterinburg"
 
 WORKDIR /src
 
-COPY . .
+COPY src .
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 

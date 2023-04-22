@@ -1,8 +1,10 @@
 import datetime as dt
 
-from .config import CLOSE_TIME_METRO, OPEN_TIME_METRO
-from .messages import (TEXT_WITH_TIME_NONE, TEXT_WITH_TIME_ONE_TRAIN,
-                       TEXT_WITH_TIME_TWO_TRAINS)
+from telegram import Update
+
+from .config import CLOSE_TIME_METRO, OPEN_TIME_METRO, logger
+from .messages import (TEXT_WITH_TIME_NONE,
+                       TEXT_WITH_TIME_ONE_TRAIN, TEXT_WITH_TIME_TWO_TRAINS)
 
 
 async def is_weekend() -> bool:
@@ -31,3 +33,13 @@ async def format_text_with_time_to_train(schedule):
             time_to_train_1=schedule[0].time_to_train
         )
     return TEXT_WITH_TIME_NONE
+
+
+async def write_to_log(update: Update) -> None:
+    if update.callback_query:
+        command = update.callback_query.data
+    else:
+        command = update.message.text
+    logger.info(
+        f'Пользователь {update.effective_user.id} отправил команду {command}'
+    )

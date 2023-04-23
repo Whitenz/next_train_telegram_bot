@@ -12,6 +12,7 @@ from .config import (BOT_TOKEN, CHOICE_DIRECTION, CONVERSATION_TIMEOUT,
 from .db import (delete_favorites_in_db, favorites_limited,
                  insert_favorite_to_db, insert_user_to_db,
                  select_favorites_from_db, select_schedule)
+from .decorators import write_log
 from .keyboards import (DIRECTION_REPLY_MARKUP, END_STATION_DIRECTION,
                         STATIONS_REPLY_MARKUP)
 from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITES_TEXT,
@@ -21,29 +22,29 @@ from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITES_TEXT,
                        FAVORITES_LIMIT_REACHED_TEXT, HELP_COMMAND, HELP_TEXT,
                        METRO_IS_CLOSED_TEXT, SCHEDULE_COMMAND, START_COMMAND,
                        START_TEXT, WRONG_COMMAND_TEXT)
-from .utils import (format_text_with_time_to_train, metro_is_closed,
-                    write_to_log)
+from .utils import format_text_with_time_to_train, metro_is_closed
 
 filterwarnings(action='ignore',
                message=r'.*CallbackQueryHandler',
                category=PTBUserWarning)
 
 
-async def start(update: Update, _) -> None:
+@write_log
+async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработка команды /start. Отправляет приветственное сообщение."""
-    await write_to_log(update)
     bot_user = update.effective_user
     text = START_TEXT.format(bot_user.first_name) + '\n\n' + HELP_TEXT
     await insert_user_to_db(bot_user)
     await update.message.reply_text(text)
 
 
+@write_log
 async def help_command(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработка команды /help. Отправляет справочное сообщение."""
-    await write_to_log(update)
     await update.message.reply_text(HELP_TEXT)
 
 
+@write_log
 async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Обработчик команд /schedule и /add_favorite.
@@ -53,7 +54,6 @@ async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     Если получена команда 'add_favorite' и список избранного пользователя не
      полон, то также отправляет список станций.
     """
-    await write_to_log(update)
     command = update.message.text
     id_bot_user = update.message.from_user.id
     if SCHEDULE_COMMAND in command and await metro_is_closed():
@@ -70,11 +70,9 @@ async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
-async def directions(update: Update,
-                     context: ContextTypes.DEFAULT_TYPE) -> int:
+@write_log
+async def directions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Этап диалога для выбора направления движения поездов."""
-
-    await write_to_log(update)
     query = update.callback_query
     await query.answer()
     from_station = query.data
@@ -94,15 +92,14 @@ async def directions(update: Update,
     return FINAL_STAGE
 
 
-async def complete_conv(update: Update,
-                        context: ContextTypes.DEFAULT_TYPE) -> int:
+@write_log
+async def complete_conv(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Заключительный этап диалога команд /schedule и /add_favorite.
     Если была получена команда /schedule, то пользователю будет отправлено
      время до ближайших поездов.
     Если получена команда /add_favorite, то сохраняет избранным маршрут в БД.
     """
-    await write_to_log(update)
     query = update.callback_query
     await query.answer()
     command = context.chat_data.get('command')
@@ -126,9 +123,7 @@ async def send_time_to_train(update: Update,
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 
-async def save_favorite(update: Update,
-                        from_station: str,
-                        to_station: str) -> None:
+async def save_favorite(update: Update, from_station: str, to_station: str) -> None:
     """Функция сохраняет маршрут в БД и отправляет ответ пользователю."""
     query = update.callback_query
     id_bot_user = query.from_user.id
@@ -137,12 +132,12 @@ async def save_favorite(update: Update,
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 
+@write_log
 async def favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Обработчик команды /favorites.
     Отправляет время до ближайших поездов по избранным маршрутам пользователя.
     """
-    await write_to_log(update)
     if await metro_is_closed():
         await update.message.reply_text(METRO_IS_CLOSED_TEXT)
         return
@@ -158,25 +153,24 @@ async def favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
 
-async def clear_favorites(update: Update,
-                          _: ContextTypes.DEFAULT_TYPE) -> None:
+@write_log
+async def clear_favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Обработчик команды /favorites.
     Удаляет из БД все избранные маршруты пользователя.
     """
-    await write_to_log(update)
     id_bot_user = update.message.from_user.id
     await delete_favorites_in_db(id_bot_user)
     await update.message.reply_text(CLEAR_FAVORITES_TEXT)
 
 
+@write_log
 async def wrong_command(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Обработчик ошибочных команд.
     Функция обрабатывает все сообщения и команды, если бот их не должен
      обрабатывать в данный момент.
     """
-    await write_to_log(update)
     await update.message.reply_text(WRONG_COMMAND_TEXT)
 
 

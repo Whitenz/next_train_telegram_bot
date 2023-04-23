@@ -92,8 +92,7 @@ def schedule_rowfactory(_, row):
     return Schedule(*row)
 
 
-async def select_schedule(from_station: str,
-                          to_station: str) -> list[Schedule, ...]:
+async def select_schedule(from_station: str, to_station: str) -> list[Schedule, ...]:
     """Функция делает запрос к БД с переданными аргументами.
     Возвращает список с объектами Schedule."""
     parameters = (from_station, to_station, await is_weekend(), LIMIT_ROW)
@@ -117,7 +116,7 @@ async def insert_favorite_to_db(id_bot_user: int,
         await db.commit()
 
 
-async def select_favorites_from_db(id_bot_user) -> list[tuple]:
+async def select_favorites_from_db(id_bot_user: int) -> list[tuple]:
     """
     Функция делает запрос к БД и получает из таблицы 'favorite' избранные
     маршруты пользователя. Возвращает их в виде списка кортежей вида
@@ -128,7 +127,7 @@ async def select_favorites_from_db(id_bot_user) -> list[tuple]:
             return await cursor.fetchall()
 
 
-async def delete_favorites_in_db(id_bot_user) -> None:
+async def delete_favorites_in_db(id_bot_user: int) -> None:
     """
     Функция делает запрос к БД и удаляет из таблицы 'favorite' все избранные
     маршруты пользователя.
@@ -138,7 +137,7 @@ async def delete_favorites_in_db(id_bot_user) -> None:
         await db.commit()
 
 
-async def favorites_limited(id_bot_user) -> list:
+async def favorites_limited(id_bot_user: int) -> list:
     """
     Функция делает запрос к БД и проверяет количество избранных маршрутов в
      таблице 'favorite' для данного пользователя..

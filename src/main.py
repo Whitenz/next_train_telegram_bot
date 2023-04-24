@@ -1,8 +1,11 @@
+import logging
 import os.path
 import sys
 
 from app.bot import start_bot
-from app.config import BOT_TOKEN, DB_FILENAME, logger
+from app.config import BOT_TOKEN, DB_FILENAME
+
+logger = logging.getLogger(__name__)
 
 
 def check_environment_variables() -> bool:

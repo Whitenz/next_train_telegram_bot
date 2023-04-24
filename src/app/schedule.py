@@ -1,11 +1,10 @@
-"""Модуль определяет класс для объектов расписания движения поездов."""
-
 import datetime as dt
 from dataclasses import dataclass
 
 
 @dataclass
 class Schedule:
+    """Дата-класс для объектов, возвращаемых из БД, с временем до ближайшего поезда."""
     from_station: str
     to_station: str
     time_to_train: str

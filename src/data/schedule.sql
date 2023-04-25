@@ -4,8 +4,8 @@ CREATE TABLE schedule (
     to_station INTEGER NOT NULL,
     is_weekend BOOLEAN NOT NULL,
     departure_time TIME NOT NULL,
-    FOREIGN KEY (from_station) REFERENCES station(id_station),
-    FOREIGN KEY (to_station) REFERENCES station(id_station),
+    FOREIGN KEY (from_station) REFERENCES station(id_station) ON DELETE CASCADE,
+    FOREIGN KEY (to_station) REFERENCES station(id_station) ON DELETE CASCADE,
     CONSTRAINT route_check CHECK (from_station != to_station),
     CONSTRAINT schedule_unique UNIQUE (from_station, to_station, is_weekend, departure_time)
 );
@@ -20,6 +20,7 @@ CREATE TABLE favorite (
     id_bot_user INTEGER NOT NULL,
     from_station INTEGER NOT NULL,
     to_station INTEGER NOT NULL,
+    FOREIGN KEY (id_bot_user) REFERENCES user(id_bot_user) ON DELETE CASCADE,
     FOREIGN KEY (from_station) REFERENCES station(id_station),
     FOREIGN KEY (to_station) REFERENCES station(id_station),
     CONSTRAINT favorite_unique UNIQUE (id_bot_user, from_station, to_station)

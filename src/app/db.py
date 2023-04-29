@@ -10,19 +10,19 @@ from .utils import is_weekend
 
 TIME_TO_TRAIN_QUERY = '''
     SELECT
-      st1.name_station AS from_station,
-      st2.name_station AS to_station,
+      st1.station_name AS from_station_id,
+      st2.station_name AS to_station_id,
       time(
           strftime('%s', sc.departure_time) - strftime('%s', 'now', 'localtime'),
           'unixepoch'
       ) AS time_to_train
     FROM
       schedule AS sc
-      INNER JOIN station AS st1 ON st1.id_station = sc.from_station
-      INNER JOIN station AS st2 ON st2.id_station = sc.to_station
+      INNER JOIN station AS st1 ON st1.station_id = sc.from_station_id
+      INNER JOIN station AS st2 ON st2.station_id = sc.to_station_id
     WHERE
-      st1.name_station = ?
-      AND st2.name_station = ?
+      st1.station_name = ?
+      AND st2.station_name = ?
       AND sc.is_weekend IS ?
       AND time_to_train < time('01:00')
     ORDER BY
@@ -32,32 +32,32 @@ TIME_TO_TRAIN_QUERY = '''
 '''
 ADD_FAVORITE_QUERY = '''
     INSERT OR IGNORE INTO
-      favorite (id_bot_user, from_station, to_station)
+      favorite (bot_user_id, from_station_id, to_station_id)
     VALUES (
       ?,
-      (SELECT id_station FROM station WHERE name_station = ?),
-      (SELECT id_station FROM station WHERE name_station = ?)
+      (SELECT station_id FROM station WHERE station_name = ?),
+      (SELECT station_id FROM station WHERE station_name = ?)
     );
 '''
 GET_FAVORITES_QUERY = '''
     SELECT
-      st1.name_station AS from_station,
-      st2.name_station AS to_station
+      st1.station_name AS from_station_id,
+      st2.station_name AS to_station_id
     FROM
       favorite AS f
-      INNER JOIN station AS st1 on st1.id_station = f.from_station
-      INNER JOIN station AS st2 on st2.id_station = f.to_station
+      INNER JOIN station AS st1 on st1.station_id = f.from_station_id
+      INNER JOIN station AS st2 on st2.station_id = f.to_station_id
     WHERE
-      f.id_bot_user = ?
+      f.bot_user_id = ?
     ORDER BY
-      f.id_favorite;
+      f.favorite_id;
 '''
 CLEAR_FAVORITES_QUERY = '''
     DELETE
     FROM
       favorite
     WHERE
-      id_bot_user = ?;
+      bot_user_id = ?;
 '''
 CHECK_LIMIT_FAVORITES_QUERY = '''
     SELECT
@@ -65,22 +65,22 @@ CHECK_LIMIT_FAVORITES_QUERY = '''
     FROM
       favorite AS f
     WHERE
-      f.id_bot_user = ?;
+      f.bot_user_id = ?;
 '''
 ADD_USER_QUERY = '''
     INSERT OR IGNORE INTO
-      user (id_bot_user, first_name, last_name, username, is_bot)
+      user (bot_user_id, first_name, last_name, username, is_bot)
     VALUES (
         ?, ?, ?, ?, ?
     );
 '''
 GET_STATIONS_QUERY = '''
     SELECT
-      id_station, name_station
+      station_id, station_name
     FROM
      station AS s
     ORDER BY
-     s.id_station;
+     s.station_id;
 '''
 
 
@@ -92,19 +92,19 @@ def schedule_rowfactory(_, row):
     return Schedule(*row)
 
 
-async def select_schedule(from_station: str, to_station: str) -> list[Schedule, ...]:
+async def select_schedule(from_station_id: str, to_station_id: str) -> list[Schedule, ...]:
     """Функция делает запрос к БД с переданными аргументами.
     Возвращает список с объектами Schedule."""
-    parameters = (from_station, to_station, await is_weekend(), LIMIT_ROW)
+    parameters = (from_station_id, to_station_id, await is_weekend(), LIMIT_ROW)
     async with aiosqlite.connect(DB_FILENAME) as db:
         db.row_factory = schedule_rowfactory
         async with db.execute(TIME_TO_TRAIN_QUERY, parameters) as cursor:
             return await cursor.fetchall()
 
 
-async def insert_favorite_to_db(id_bot_user: int,
-                                from_station: str,
-                                to_station: str) -> None:
+async def insert_favorite_to_db(bot_user_id: int,
+                                from_station_id: str,
+                                to_station_id: str) -> None:
     """
     Функция делает запрос к БД и добавляет избранный маршрут пользователя
     в таблицу 'favorite'.
@@ -112,39 +112,39 @@ async def insert_favorite_to_db(id_bot_user: int,
 
     async with aiosqlite.connect(DB_FILENAME) as db:
         await db.execute(ADD_FAVORITE_QUERY,
-                         (id_bot_user, from_station, to_station))
+                         (bot_user_id, from_station_id, to_station_id))
         await db.commit()
 
 
-async def select_favorites_from_db(id_bot_user: int) -> list[tuple]:
+async def select_favorites_from_db(bot_user_id: int) -> list[tuple]:
     """
     Функция делает запрос к БД и получает из таблицы 'favorite' избранные
     маршруты пользователя. Возвращает их в виде списка кортежей вида
-    (from_station, to_station)
+    (from_station_id, to_station_id)
     """
     async with aiosqlite.connect(DB_FILENAME) as db:
-        async with db.execute(GET_FAVORITES_QUERY, (id_bot_user,)) as cursor:
+        async with db.execute(GET_FAVORITES_QUERY, (bot_user_id,)) as cursor:
             return await cursor.fetchall()
 
 
-async def delete_favorites_in_db(id_bot_user: int) -> None:
+async def delete_favorites_in_db(bot_user_id: int) -> None:
     """
     Функция делает запрос к БД и удаляет из таблицы 'favorite' все избранные
     маршруты пользователя.
     """
     async with aiosqlite.connect(DB_FILENAME) as db:
-        await db.execute(CLEAR_FAVORITES_QUERY, (id_bot_user,))
+        await db.execute(CLEAR_FAVORITES_QUERY, (bot_user_id,))
         await db.commit()
 
 
-async def favorites_limited(id_bot_user: int) -> list:
+async def favorites_limited(bot_user_id: int) -> list:
     """
     Функция делает запрос к БД и проверяет количество избранных маршрутов в
      таблице 'favorite' для данного пользователя..
     """
     async with aiosqlite.connect(DB_FILENAME) as db:
         async with db.execute(CHECK_LIMIT_FAVORITES_QUERY,
-                              (LIMIT_ROW, id_bot_user)) as cursor:
+                              (LIMIT_ROW, bot_user_id)) as cursor:
             result = await cursor.fetchone()
             return result[0]
 

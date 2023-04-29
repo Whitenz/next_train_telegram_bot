@@ -1,20 +1,18 @@
 import datetime
 
-from sqlalchemy import (CheckConstraint, ForeignKey, String, UniqueConstraint,
-                        create_engine, func)
-from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass,
-                            mapped_column, sessionmaker)
+from sqlalchemy import (CheckConstraint, ForeignKey, func, String, UniqueConstraint)
+from sqlalchemy.orm import (DeclarativeBase, Mapped, mapped_column, MappedAsDataclass,
+                            relationship)
 from typing_extensions import Annotated
-
-from .config import DB_FILENAME
-
-
-ENGINE = create_engine(f'sqlite:///{DB_FILENAME}', echo=True)
-Session = sessionmaker(ENGINE)
 
 TIMESTAMP_TYPE = Annotated[
     datetime.datetime,
     mapped_column(nullable=False, server_default=func.now())
+]
+STATION_FK = Annotated[
+    int,
+    mapped_column(
+        ForeignKey('station.station_id', onupdate='CASCADE', ondelete='CASCADE'))
 ]
 
 
@@ -26,26 +24,27 @@ class Base(MappedAsDataclass, DeclarativeBase):
 class Station(Base):
     __tablename__ = 'station'
 
-    id_station: Mapped[int] = mapped_column(primary_key=True)
-    name_station: Mapped[str] = mapped_column(String(30), unique=True)
+    station_id: Mapped[int] = mapped_column(primary_key=True)
+    station_name: Mapped[str] = mapped_column(String(30), unique=True)
 
 
 class Schedule(Base):
     __tablename__ = 'schedule'
 
-    id_schedule: Mapped[int] = mapped_column(primary_key=True)
-    from_station: Mapped[int] = mapped_column(ForeignKey('station.id_station',
-                                                         onupdate='CASCADE',
-                                                         ondelete='CASCADE'))
-    to_station: Mapped[int] = mapped_column(ForeignKey('station.id_station',
-                                                       onupdate='CASCADE',
-                                                       ondelete='CASCADE'))
+    schedule_id: Mapped[int] = mapped_column(primary_key=True)
+    from_station_id: Mapped[STATION_FK] = mapped_column(
+        ForeignKey('station.station_id', onupdate='CASCADE', ondelete='CASCADE'))
+    to_station_id: Mapped[STATION_FK] = mapped_column(
+        ForeignKey('station.station_id', onupdate='CASCADE', ondelete='CASCADE'))
     is_weekend: Mapped[bool]
     departure_time: Mapped[datetime.time]
 
+    from_station_obj: Mapped['Station'] = relationship(foreign_keys=from_station_id)
+    to_station_obj: Mapped['Station'] = relationship(foreign_keys=to_station_id)
+
     __table_args__ = (
-        CheckConstraint('from_station != to_station', name='route_check'),
-        UniqueConstraint('from_station', 'to_station', 'is_weekend',
+        CheckConstraint('from_station_id != to_station_id', name='route_check'),
+        UniqueConstraint('from_station_id', 'to_station_id', 'is_weekend',
                          'departure_time', name='schedule_unique')
     )
 
@@ -53,7 +52,7 @@ class Schedule(Base):
 class User(Base):
     __tablename__ = 'user'
 
-    id_bot_user: Mapped[int] = mapped_column(primary_key=True)
+    bot_user_id: Mapped[int] = mapped_column(primary_key=True)
     first_name: Mapped[str]
     last_name: Mapped[str | None]
     username: Mapped[str | None] = mapped_column(unique=True)
@@ -64,16 +63,17 @@ class User(Base):
 class Favorite(Base):
     __tablename__ = 'favorite'
 
-    id_favorite: Mapped[int] = mapped_column(primary_key=True)
-    id_bot_user: Mapped[int] = mapped_column(ForeignKey('user.id_bot_user'))
-    from_station: Mapped[int] = mapped_column(ForeignKey('station.id_station',
-                                                         onupdate='CASCADE',
-                                                         ondelete='CASCADE'))
-    to_station: Mapped[int] = mapped_column(ForeignKey('station.id_station',
-                                                       onupdate='CASCADE',
-                                                       ondelete='CASCADE'))
+    favorite_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    bot_user_id: Mapped[int] = mapped_column(ForeignKey('user.bot_user_id'))
+    from_station_id: Mapped[STATION_FK] = mapped_column(
+        ForeignKey('station.station_id', onupdate='CASCADE', ondelete='CASCADE'))
+    to_station_id: Mapped[STATION_FK] = mapped_column(
+        ForeignKey('station.station_id', onupdate='CASCADE', ondelete='CASCADE'))
+
+    from_station_obj: Mapped['Station'] = relationship(foreign_keys=from_station_id)
+    to_station_obj: Mapped['Station'] = relationship(foreign_keys=to_station_id)
 
     __table_args__ = (
-        UniqueConstraint('id_bot_user', 'from_station', 'to_station',
+        UniqueConstraint('bot_user_id', 'from_station_id', 'to_station_id',
                          name='favorite_unique'),
     )

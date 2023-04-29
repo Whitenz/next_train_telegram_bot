@@ -1,33 +1,33 @@
 CREATE TABLE schedule (
-    id_schedule INTEGER PRIMARY KEY,
-    from_station INTEGER NOT NULL,
-    to_station INTEGER NOT NULL,
+    schedule_id INTEGER PRIMARY KEY,
+    from_station_id INTEGER NOT NULL,
+    to_station_id INTEGER NOT NULL,
     is_weekend BOOLEAN NOT NULL,
     departure_time TIME NOT NULL,
-    FOREIGN KEY (from_station) REFERENCES station(id_station) ON DELETE CASCADE,
-    FOREIGN KEY (to_station) REFERENCES station(id_station) ON DELETE CASCADE,
-    CONSTRAINT route_check CHECK (from_station != to_station),
-    CONSTRAINT schedule_unique UNIQUE (from_station, to_station, is_weekend, departure_time)
+    FOREIGN KEY (from_station_id) REFERENCES station(station_id) ON DELETE CASCADE,
+    FOREIGN KEY (to_station_id) REFERENCES station(station_id) ON DELETE CASCADE,
+    CONSTRAINT route_check CHECK (from_station_id != to_station_id),
+    CONSTRAINT schedule_unique UNIQUE (from_station_id, to_station_id, is_weekend, departure_time)
 );
 
 CREATE TABLE station (
-    id_station INTEGER PRIMARY KEY,
-    name_station VARCHAR(30) NOT NULL UNIQUE
+    station_id INTEGER PRIMARY KEY,
+    station_name VARCHAR(30) NOT NULL UNIQUE
 );
 
 CREATE TABLE favorite (
-    id_favorite INTEGER PRIMARY KEY,
-    id_bot_user INTEGER NOT NULL,
-    from_station INTEGER NOT NULL,
-    to_station INTEGER NOT NULL,
-    FOREIGN KEY (id_bot_user) REFERENCES user(id_bot_user) ON DELETE CASCADE,
-    FOREIGN KEY (from_station) REFERENCES station(id_station),
-    FOREIGN KEY (to_station) REFERENCES station(id_station),
-    CONSTRAINT favorite_unique UNIQUE (id_bot_user, from_station, to_station)
+    favorite_id INTEGER PRIMARY KEY,
+    bot_user_id INTEGER NOT NULL,
+    from_station_id INTEGER NOT NULL,
+    to_station_id INTEGER NOT NULL,
+    FOREIGN KEY (bot_user_id) REFERENCES user(bot_user_id) ON DELETE CASCADE,
+    FOREIGN KEY (from_station_id) REFERENCES station(station_id),
+    FOREIGN KEY (to_station_id) REFERENCES station(station_id),
+    CONSTRAINT favorite_unique UNIQUE (bot_user_id, from_station_id, to_station_id)
 );
 
 CREATE TABLE user (
-    id_bot_user INTEGER PRIMARY KEY,
+    bot_user_id INTEGER PRIMARY KEY,
     first_name VARCHAR NOT NULL,
     last_name VARCHAR,
     username VARCHAR,
@@ -35,7 +35,7 @@ CREATE TABLE user (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-INSERT INTO station (id_station, name_station)
+INSERT INTO station (station_id, station_name)
 VALUES (1, 'Космонавтов'),
        (2, 'Уралмаш'),
        (3, 'Машиностроителей'),
@@ -46,7 +46,7 @@ VALUES (1, 'Космонавтов'),
        (8, 'Чкаловская'),
        (9, 'Ботаническая');
 
-INSERT INTO schedule (from_station, to_station, is_weekend, departure_time)
+INSERT INTO schedule (from_station_id, to_station_id, is_weekend, departure_time)
 VALUES  (1, 9, 0, '06:05'),
         (1, 9, 0, '06:13'),
         (1, 9, 0, '06:21'),

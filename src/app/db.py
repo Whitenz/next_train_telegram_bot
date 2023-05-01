@@ -69,7 +69,7 @@ CHECK_LIMIT_FAVORITES_QUERY = '''
 '''
 ADD_USER_QUERY = '''
     INSERT OR IGNORE INTO
-      user (bot_user_id, first_name, last_name, username, is_bot)
+      bot_user (bot_user_id, first_name, last_name, username, is_bot)
     VALUES (
         ?, ?, ?, ?, ?
     );

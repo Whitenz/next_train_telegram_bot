@@ -1,10 +1,12 @@
 import datetime
 from typing import List
 
-from sqlalchemy import (CheckConstraint, ForeignKey, String, UniqueConstraint,
-                        func)
-from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass,
-                            mapped_column, relationship)
+from sqlalchemy import (CheckConstraint, ForeignKey, func, String,
+                        UniqueConstraint)
+from sqlalchemy.dialects.postgresql import TIME
+from sqlalchemy.orm import (column_property, DeclarativeBase, Mapped,
+                            mapped_column,
+                            MappedAsDataclass, relationship)
 from typing_extensions import Annotated
 
 TIMESTAMP_TYPE = Annotated[
@@ -38,8 +40,11 @@ class Schedule(Base):
     from_station_id: Mapped[STATION_FK] = mapped_column('from_station_id')
     to_station_id: Mapped[STATION_FK] = mapped_column('to_station_id')
     is_weekend: Mapped[bool]
-    departure_time: Mapped[datetime.time]
+    departure_time: Mapped[datetime.time] = mapped_column('departure_time')
 
+    time_to_train: Mapped[datetime.time] = column_property(
+        func.cast(departure_time - func.localtime(), TIME),
+    )
     from_station_obj: Mapped['Station'] = relationship(foreign_keys=from_station_id)
     to_station_obj: Mapped['Station'] = relationship(foreign_keys=to_station_id)
 

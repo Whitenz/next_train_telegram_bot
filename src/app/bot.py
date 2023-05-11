@@ -22,6 +22,7 @@ from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITES_TEXT,
                        FAVORITES_LIMIT_REACHED_TEXT, HELP_COMMAND, HELP_TEXT,
                        METRO_IS_CLOSED_TEXT, SCHEDULE_COMMAND, START_COMMAND,
                        START_TEXT, WRONG_COMMAND_TEXT)
+from .orm_db import select_schedule_orm
 from .utils import format_text_with_time_to_train, metro_is_closed
 
 filterwarnings(action='ignore',
@@ -118,8 +119,8 @@ async def send_time_to_train(update: Update,
                              to_station: str) -> None:
     """Функция отправляет пользователю время до ближайших поездов."""
     query = update.callback_query
-    schedule = await select_schedule(from_station, to_station)
-    text = await format_text_with_time_to_train(schedule)
+    schedules = await select_schedule_orm(from_station, to_station)
+    text = await format_text_with_time_to_train(schedules)
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 

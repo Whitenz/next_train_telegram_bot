@@ -1,11 +1,11 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from .db import get_stations_from_db
+from .orm_db import STATIONS_DICT
 
 # Клавиатура с набором кнопок с названием станций
 STATIONS_KEYBOARD = [
-    [InlineKeyboardButton(name_station, callback_data=name_station)]
-    for _, name_station in get_stations_from_db()
+    [InlineKeyboardButton(station_name, callback_data=station_name)]
+    for station_name in STATIONS_DICT.keys()
 ]
 STATIONS_REPLY_MARKUP = InlineKeyboardMarkup(STATIONS_KEYBOARD)
 

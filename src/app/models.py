@@ -44,10 +44,10 @@ class Schedule(Base):
         column=func.cast(departure_time - func.localtime(), TIME), init=False
     )
     from_station_obj: Mapped['Station'] = relationship(
-        init=False, foreign_keys=from_station_id
+        init=False, lazy='joined', foreign_keys=from_station_id
     )
     to_station_obj: Mapped['Station'] = relationship(
-        init=False, foreign_keys=to_station_id
+        init=False, lazy='joined', foreign_keys=to_station_id
     )
 
     __table_args__ = (
@@ -56,21 +56,28 @@ class Schedule(Base):
                          departure_time, name='schedule_unique')
     )
 
+    @property
+    def direction(self):
+        return (
+            f'{self.from_station_obj.station_name} ➡ {self.to_station_obj.station_name}'
+        )
+
 
 class BotUser(Base):
     __tablename__ = 'bot_user'
 
     bot_user_id: Mapped[int] = mapped_column(
-        primary_key=True, autoincrement=False, unique=True
+        primary_key=True, autoincrement=False
     )
     first_name: Mapped[str]
     last_name: Mapped[str | None]
-    username: Mapped[str | None] = mapped_column(unique=True)
+    username: Mapped[str | None]
     is_bot: Mapped[bool]
     created_at: Mapped[TIMESTAMP_TYPE] = mapped_column(init=False)
 
     favorites: Mapped[List['Favorite']] = relationship(
-        init=False, back_populates='bot_user', cascade='all, delete-orphan'
+        back_populates='bot_user', cascade='all, delete-orphan',
+        init=False, lazy='joined'
     )
 
 
@@ -87,12 +94,14 @@ class Favorite(Base):
     to_station_id: Mapped[STATION_FK] = mapped_column()
 
     from_station_obj: Mapped['Station'] = relationship(
-        init=False, foreign_keys=from_station_id
+        init=False, lazy='joined', foreign_keys=from_station_id
     )
     to_station_obj: Mapped['Station'] = relationship(
-        init=False, foreign_keys=to_station_id
+        init=False, lazy='joined', foreign_keys=to_station_id
     )
-    bot_user: Mapped['BotUser'] = relationship(init=False, back_populates='favorites')
+    bot_user: Mapped['BotUser'] = relationship(
+        init=False, lazy='joined', back_populates='favorites'
+    )
 
     __table_args__ = (
         UniqueConstraint(bot_user_id, from_station_id, to_station_id,

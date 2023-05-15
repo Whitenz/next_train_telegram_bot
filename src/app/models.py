@@ -1,5 +1,4 @@
 import datetime
-from typing import List
 
 from sqlalchemy import (TIME, CheckConstraint, ForeignKey, String,
                         UniqueConstraint, func)
@@ -75,11 +74,6 @@ class BotUser(Base):
     is_bot: Mapped[bool]
     created_at: Mapped[TIMESTAMP_TYPE] = mapped_column(init=False)
 
-    favorites: Mapped[List['Favorite']] = relationship(
-        back_populates='bot_user', cascade='all, delete-orphan',
-        init=False, lazy='joined'
-    )
-
 
 class Favorite(Base):
     __tablename__ = 'favorite'
@@ -98,9 +92,6 @@ class Favorite(Base):
     )
     to_station_obj: Mapped['Station'] = relationship(
         init=False, lazy='joined', foreign_keys=to_station_id
-    )
-    bot_user: Mapped['BotUser'] = relationship(
-        init=False, lazy='joined', back_populates='favorites'
     )
 
     __table_args__ = (

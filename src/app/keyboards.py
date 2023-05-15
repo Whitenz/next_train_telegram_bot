@@ -4,8 +4,8 @@ from .orm_db import STATIONS_DICT
 
 # Клавиатура с набором кнопок с названием станций
 STATIONS_KEYBOARD = [
-    [InlineKeyboardButton(station_name, callback_data=station_name)]
-    for station_name in STATIONS_DICT.keys()
+    [InlineKeyboardButton(station_name, callback_data=station_id)]
+    for station_name, station_id in STATIONS_DICT.items()
 ]
 STATIONS_REPLY_MARKUP = InlineKeyboardMarkup(STATIONS_KEYBOARD)
 
@@ -18,6 +18,6 @@ DIRECTION_REPLY_MARKUP = InlineKeyboardMarkup(DIRECTION_KEYBOARD)
 # Словарь для выбора направления на конечных станциях, где 'from_station' ключ,
 # а 'to_station' значение (добавлен, т.к. нет смысла выбирать пользователю)
 END_STATION_DIRECTION = {
-    FIRST_STATION_BUTTON.text: LAST_STATION_BUTTON.text,
-    LAST_STATION_BUTTON.text: FIRST_STATION_BUTTON.text,
+    FIRST_STATION_BUTTON.callback_data: LAST_STATION_BUTTON.callback_data,
+    LAST_STATION_BUTTON.callback_data: FIRST_STATION_BUTTON.callback_data,
 }

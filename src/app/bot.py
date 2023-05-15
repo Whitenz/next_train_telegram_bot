@@ -2,16 +2,13 @@ from warnings import filterwarnings
 
 from telegram import Update
 from telegram.constants import ParseMode
-from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
-                          CommandHandler, ContextTypes, ConversationHandler,
-                          MessageHandler, filters)
+from telegram.ext import (ApplicationBuilder, CallbackQueryHandler, CommandHandler,
+                          ContextTypes, ConversationHandler, filters, MessageHandler)
 from telegram.warnings import PTBUserWarning
 
 from .config import (BOT_TOKEN, CHOICE_DIRECTION, CONVERSATION_TIMEOUT,
                      FINAL_STAGE)
-from .db import (delete_favorites_in_db, favorites_limited,
-                 insert_favorite_to_db, insert_user_to_db,
-                 select_favorites_from_db, select_schedule)
+from .db import favorites_limited, insert_user_to_db
 from .decorators import write_log
 from .keyboards import (DIRECTION_REPLY_MARKUP, END_STATION_DIRECTION,
                         STATIONS_REPLY_MARKUP)
@@ -22,7 +19,8 @@ from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITES_TEXT,
                        FAVORITES_LIMIT_REACHED_TEXT, HELP_COMMAND, HELP_TEXT,
                        METRO_IS_CLOSED_TEXT, SCHEDULE_COMMAND, START_COMMAND,
                        START_TEXT, WRONG_COMMAND_TEXT)
-from .orm_db import select_schedule_orm
+from .orm_db import (delete_favorites_in_db, insert_favorite_to_db,
+                     select_favorites_from_db, select_schedule_from_db)
 from .utils import format_text_with_time_to_train, metro_is_closed
 
 filterwarnings(action='ignore',
@@ -76,18 +74,18 @@ async def directions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Этап диалога для выбора направления движения поездов."""
     query = update.callback_query
     await query.answer()
-    from_station = query.data
+    from_station_id = int(query.data)
     command = context.chat_data.get('command')
 
-    if to_station := END_STATION_DIRECTION.get(from_station):
+    if to_station_id := END_STATION_DIRECTION.get(from_station_id):
         if SCHEDULE_COMMAND in command:
-            await send_time_to_train(update, from_station, to_station)
+            await send_time_to_train(update, from_station_id, to_station_id)
         if ADD_FAVORITE_COMMAND in command:
-            await save_favorite(update, from_station, to_station)
+            await save_favorite(update, from_station_id, to_station_id)
         context.chat_data.clear()
         return ConversationHandler.END
 
-    context.chat_data['from_station'] = from_station
+    context.chat_data['from_station_id'] = from_station_id
     await query.edit_message_text(text=CHOICE_DIRECTION_TEXT,
                                   reply_markup=DIRECTION_REPLY_MARKUP)
     return FINAL_STAGE
@@ -104,32 +102,34 @@ async def complete_conv(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     query = update.callback_query
     await query.answer()
     command = context.chat_data.get('command')
-    from_station = context.chat_data.get('from_station')
-    to_station = query.data
+    from_station_id = context.chat_data.get('from_station_id')
+    to_station_id = int(query.data)
     if SCHEDULE_COMMAND in command:
-        await send_time_to_train(update, from_station, to_station)
+        await send_time_to_train(update, from_station_id, to_station_id)
     if ADD_FAVORITE_COMMAND in command:
-        await save_favorite(update, from_station, to_station)
+        await save_favorite(update, from_station_id, to_station_id)
     context.chat_data.clear()
     return ConversationHandler.END
 
 
 async def send_time_to_train(update: Update,
-                             from_station: str,
-                             to_station: str) -> None:
+                             from_station_id: int,
+                             to_station_id: int) -> None:
     """Функция отправляет пользователю время до ближайших поездов."""
     query = update.callback_query
-    schedules = await select_schedule_orm(from_station, to_station)
+    schedules = await select_schedule_from_db(from_station_id, to_station_id)
     text = await format_text_with_time_to_train(schedules)
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 
-async def save_favorite(update: Update, from_station: str, to_station: str) -> None:
+async def save_favorite(update: Update,
+                        from_station_id: int,
+                        to_station_id: int) -> None:
     """Функция сохраняет маршрут в БД и отправляет ответ пользователю."""
     query = update.callback_query
     id_bot_user = query.from_user.id
-    text = ADD_FAVORITES_TEXT.format(from_station, to_station)
-    await insert_favorite_to_db(id_bot_user, from_station, to_station)
+    text = ADD_FAVORITES_TEXT.format(from_station_id, to_station_id)
+    await insert_favorite_to_db(id_bot_user, from_station_id, to_station_id)
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 
@@ -144,8 +144,11 @@ async def favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         return
     id_bot_user = update.message.from_user.id
     if user_favorites := await select_favorites_from_db(id_bot_user):
-        schedules = [await select_schedule(*favorite)
-                     for favorite in user_favorites]
+        schedules = [
+            await select_schedule_from_db(favorite.from_station_id,
+                                          favorite.to_station_id)
+            for favorite in user_favorites
+        ]
         texts = [await format_text_with_time_to_train(schedule)
                  for schedule in schedules]
         text = '\n\n'.join(texts)

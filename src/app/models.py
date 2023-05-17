@@ -98,3 +98,9 @@ class Favorite(Base):
         UniqueConstraint(bot_user_id, from_station_id, to_station_id,
                          name='favorite_unique'),
     )
+
+    @property
+    def direction(self):
+        return (
+            f'{self.from_station_obj.station_name} ➡ {self.to_station_obj.station_name}'
+        )

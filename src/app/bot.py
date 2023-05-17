@@ -2,24 +2,26 @@ from warnings import filterwarnings
 
 from telegram import Update
 from telegram.constants import ParseMode
-from telegram.ext import (ApplicationBuilder, CallbackQueryHandler, CommandHandler,
-                          ContextTypes, ConversationHandler, filters, MessageHandler)
+from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
+                          CommandHandler, ContextTypes, ConversationHandler,
+                          MessageHandler, filters)
 from telegram.warnings import PTBUserWarning
 
 from .config import (BOT_TOKEN, CHOICE_DIRECTION, CONVERSATION_TIMEOUT,
                      FINAL_STAGE)
-from .db import favorites_limited, insert_user_to_db
 from .decorators import write_log
 from .keyboards import (DIRECTION_REPLY_MARKUP, END_STATION_DIRECTION,
                         STATIONS_REPLY_MARKUP)
-from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITES_TEXT,
+from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITE_TEXT,
                        CHOICE_DIRECTION_TEXT, CHOICE_STATION_TEXT,
                        CLEAR_FAVORITES_COMMAND, CLEAR_FAVORITES_TEXT,
-                       CONVERSATION_TIMEOUT_TEXT, FAVORITES_COMMAND,
-                       FAVORITES_LIMIT_REACHED_TEXT, HELP_COMMAND, HELP_TEXT,
-                       METRO_IS_CLOSED_TEXT, SCHEDULE_COMMAND, START_COMMAND,
-                       START_TEXT, WRONG_COMMAND_TEXT)
-from .orm_db import (delete_favorites_in_db, insert_favorite_to_db,
+                       CONVERSATION_TIMEOUT_TEXT, FAVORITE_EXISTS_TEXT,
+                       FAVORITES_COMMAND, FAVORITES_LIMIT_REACHED_TEXT,
+                       HELP_COMMAND, HELP_TEXT, METRO_IS_CLOSED_TEXT,
+                       SCHEDULE_COMMAND, START_COMMAND, START_TEXT,
+                       WRONG_COMMAND_TEXT)
+from .orm_db import (delete_favorites_in_db, favorites_limited,
+                     insert_favorite_to_db, insert_user_to_db,
                      select_favorites_from_db, select_schedule_from_db)
 from .utils import format_text_with_time_to_train, metro_is_closed
 
@@ -29,12 +31,15 @@ filterwarnings(action='ignore',
 
 
 @write_log
-async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработка команды /start. Отправляет приветственное сообщение."""
     bot_user = update.effective_user
-    text = START_TEXT.format(bot_user.first_name) + '\n\n' + HELP_TEXT
-    await insert_user_to_db(bot_user)
-    await update.message.reply_text(text)
+    if bot_user:
+        text = START_TEXT.format(bot_user.first_name) + '\n\n' + HELP_TEXT
+        await insert_user_to_db(bot_user)
+        await update.message.reply_text(text)
+    else:
+        await wrong_command(update, context)
 
 
 @write_log
@@ -128,8 +133,11 @@ async def save_favorite(update: Update,
     """Функция сохраняет маршрут в БД и отправляет ответ пользователю."""
     query = update.callback_query
     id_bot_user = query.from_user.id
-    text = ADD_FAVORITES_TEXT.format(from_station_id, to_station_id)
-    await insert_favorite_to_db(id_bot_user, from_station_id, to_station_id)
+    favorite = await insert_favorite_to_db(id_bot_user, from_station_id, to_station_id)
+    if favorite:
+        text = ADD_FAVORITE_TEXT.format(direction=favorite.direction)
+    else:
+        text = FAVORITE_EXISTS_TEXT
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 

@@ -13,9 +13,10 @@ from .config import LIMIT_ROW
 from .models import BotUser, Favorite, Schedule, Station
 from .utils import is_weekend
 
-sync_engine = create_engine(f'postgresql://{os.getenv("PG_DSN")}')
+sync_engine = create_engine(f'postgresql://{os.getenv("PG_DSN")}', echo=True)
 sync_session = sessionmaker(bind=sync_engine, expire_on_commit=False)
-async_engine = create_async_engine(f'postgresql+asyncpg://{os.getenv("PG_DSN")}')
+async_engine = create_async_engine(f'postgresql+asyncpg://{os.getenv("PG_DSN")}',
+                                   echo=True)
 async_session = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
@@ -95,11 +96,11 @@ async def insert_favorite_to_db(bot_user_id: int,
             Favorite
         )
 
-        favorite = await session.scalar(statement)
+        new_favorite = await session.scalar(statement)
         await session.commit()
-        if favorite:
-            await session.refresh(favorite)
-        return favorite
+        if new_favorite:
+            await session.refresh(new_favorite)
+        return new_favorite
 
 
 async def select_favorites_from_db(bot_user_id: int) -> Sequence[Favorite] | None:
@@ -138,8 +139,8 @@ async def delete_favorites_in_db(bot_user_id: int) -> None:
 async def favorites_limited(bot_user_id: int) -> bool:
     """
     Функция делает запрос к БД и проверяет количество избранных маршрутов в
-     таблице 'favorite' для данного пользователя. Возвращает результат сравнения с
-     максимальным допустимым количеством избранного на пользователя.
+     таблице 'favorite' для данного пользователя. Возвращает результат
+      сравнения с максимальным допустимым количеством избранного.
     """
     async with async_session() as session:
         statement = select(

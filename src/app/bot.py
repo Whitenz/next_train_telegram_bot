@@ -129,9 +129,11 @@ async def save_favorite(update: Update,
     """Функция сохраняет маршрут в БД и отправляет ответ пользователю."""
     query = update.callback_query
     id_bot_user = query.from_user.id
-    favorite = await insert_favorite_to_db(id_bot_user, from_station_id, to_station_id)
-    if favorite:
-        text = ADD_FAVORITE_TEXT.format(direction=favorite.direction)
+    new_favorite = await insert_favorite_to_db(id_bot_user,
+                                               from_station_id,
+                                               to_station_id)
+    if new_favorite:
+        text = ADD_FAVORITE_TEXT.format(direction=new_favorite.direction)
     else:
         text = FAVORITE_EXISTS_TEXT
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)

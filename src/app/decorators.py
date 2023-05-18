@@ -11,7 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 def write_log(func: Callable) -> Callable:
-    """Декоратор для логгирования действий пользователя при вызове обработчиков бота."""
+    """
+    Функция-декоратор для логгирования действий пользователя при вызове
+     обработчиков бота.
+    """
     @wraps(func)
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.callback_query:

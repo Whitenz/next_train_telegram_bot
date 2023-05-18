@@ -2,8 +2,7 @@ import datetime
 import os
 from typing import Any, Sequence
 
-from sqlalchemy import (Row, RowMapping, asc, create_engine, delete, func,
-                        select)
+from sqlalchemy import Row, RowMapping, asc, create_engine, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -14,10 +13,9 @@ from .config import LIMIT_ROW
 from .models import BotUser, Favorite, Schedule, Station
 from .utils import is_weekend
 
-sync_engine = create_engine(f'postgresql://{os.getenv("PG_DB")}', echo=True)
+sync_engine = create_engine(f'postgresql://{os.getenv("PG_DSN")}')
 sync_session = sessionmaker(bind=sync_engine, expire_on_commit=False)
-async_engine = create_async_engine(f'postgresql+asyncpg://{os.getenv("PG_DB")}',
-                                   echo=True)
+async_engine = create_async_engine(f'postgresql+asyncpg://{os.getenv("PG_DSN")}')
 async_session = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
@@ -37,8 +35,7 @@ STATIONS_DICT: dict[str, int] = {
 
 async def insert_user_to_db(bot_user: User) -> None:
     """
-    Функция делает запрос к БД и добавляет нового пользователя бота в таблицу
-     'bot_user'.
+    Функция делает запрос к БД и добавляет нового пользователя бота в БД>.
     """
     async with async_session() as session:
         statement = insert(
@@ -55,10 +52,12 @@ async def insert_user_to_db(bot_user: User) -> None:
         await session.commit()
 
 
-async def select_schedule_from_db(
-        from_station_id: int, to_station_id: int) -> Sequence[Row | RowMapping | Any]:
-    """Функция делает запрос к БД с переданными аргументами.
-    Возвращает список с объектами Schedule."""
+async def select_schedule_from_db(from_station_id: int,
+                                  to_station_id: int) -> Sequence[Schedule] | None:
+    """
+    Функция делает запрос к БД с заданным id станций.
+    Возвращает список с объектами Schedule.
+    """
     async with async_session() as session:
         statement = select(
             Schedule
@@ -70,10 +69,37 @@ async def select_schedule_from_db(
         ).order_by(
             asc(Schedule.time_to_train)
         ).limit(
-            2
+            LIMIT_ROW
         )
 
         return (await session.scalars(statement)).all()
+
+
+async def insert_favorite_to_db(bot_user_id: int,
+                                from_station_id: int,
+                                to_station_id: int) -> Favorite | None:
+    """
+    Функция делает запрос к БД и добавляет избранный маршрут пользователя
+    в таблицу 'favorite'. Возвращает созданный объект Favorite.
+    """
+    async with async_session() as session:
+        statement = insert(
+            Favorite
+        ).values(
+            bot_user_id=bot_user_id,
+            from_station_id=from_station_id,
+            to_station_id=to_station_id
+        ).on_conflict_do_nothing(
+            constraint='favorite_unique'
+        ).returning(
+            Favorite
+        )
+
+        favorite = await session.scalar(statement)
+        await session.commit()
+        if favorite:
+            await session.refresh(favorite)
+        return favorite
 
 
 async def select_favorites_from_db(bot_user_id: int) -> Sequence[Favorite] | None:
@@ -112,7 +138,8 @@ async def delete_favorites_in_db(bot_user_id: int) -> None:
 async def favorites_limited(bot_user_id: int) -> bool:
     """
     Функция делает запрос к БД и проверяет количество избранных маршрутов в
-     таблице 'favorite' для данного пользователя..
+     таблице 'favorite' для данного пользователя. Возвращает результат сравнения с
+     максимальным допустимым количеством избранного на пользователя.
     """
     async with async_session() as session:
         statement = select(
@@ -125,30 +152,3 @@ async def favorites_limited(bot_user_id: int) -> bool:
 
         count = await session.scalar(statement)
         return count >= LIMIT_ROW
-
-
-async def insert_favorite_to_db(bot_user_id: int,
-                                from_station_id: int,
-                                to_station_id: int) -> Favorite | None:
-    """
-    Функция делает запрос к БД и добавляет избранный маршрут пользователя
-    в таблицу 'favorite'. Возвращает созданный объект Favorite.
-    """
-    async with async_session() as session:
-        statement = insert(
-            Favorite
-        ).values(
-            bot_user_id=bot_user_id,
-            from_station_id=from_station_id,
-            to_station_id=to_station_id
-        ).on_conflict_do_nothing(
-            constraint='favorite_unique'
-        ).returning(
-            Favorite
-        )
-        favorite = await session.scalar(statement)
-        await session.commit()
-
-        if favorite:
-            await session.refresh(favorite)
-        return favorite

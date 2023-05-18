@@ -2,27 +2,23 @@ from warnings import filterwarnings
 
 from telegram import Update
 from telegram.constants import ParseMode
-from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
-                          CommandHandler, ContextTypes, ConversationHandler,
-                          MessageHandler, filters)
+from telegram.ext import (ApplicationBuilder, CallbackQueryHandler, CommandHandler,
+                          ContextTypes, ConversationHandler, MessageHandler, filters)
 from telegram.warnings import PTBUserWarning
 
-from .config import (BOT_TOKEN, CHOICE_DIRECTION, CONVERSATION_TIMEOUT,
-                     FINAL_STAGE)
+from .config import BOT_TOKEN, CHOICE_DIRECTION, CONVERSATION_TIMEOUT, FINAL_STAGE
+from .db import (delete_favorites_in_db, favorites_limited, insert_favorite_to_db,
+                 insert_user_to_db, select_favorites_from_db, select_schedule_from_db)
 from .decorators import write_log
 from .keyboards import (DIRECTION_REPLY_MARKUP, END_STATION_DIRECTION,
                         STATIONS_REPLY_MARKUP)
-from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITE_TEXT,
-                       CHOICE_DIRECTION_TEXT, CHOICE_STATION_TEXT,
-                       CLEAR_FAVORITES_COMMAND, CLEAR_FAVORITES_TEXT,
-                       CONVERSATION_TIMEOUT_TEXT, FAVORITE_EXISTS_TEXT,
-                       FAVORITES_COMMAND, FAVORITES_LIMIT_REACHED_TEXT,
-                       HELP_COMMAND, HELP_TEXT, METRO_IS_CLOSED_TEXT,
-                       SCHEDULE_COMMAND, START_COMMAND, START_TEXT,
-                       WRONG_COMMAND_TEXT)
-from .orm_db import (delete_favorites_in_db, favorites_limited,
-                     insert_favorite_to_db, insert_user_to_db,
-                     select_favorites_from_db, select_schedule_from_db)
+from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITE_TEXT, CHOICE_DIRECTION_TEXT,
+                       CHOICE_STATION_TEXT, CLEAR_FAVORITES_COMMAND,
+                       CLEAR_FAVORITES_TEXT, CONVERSATION_TIMEOUT_TEXT,
+                       FAVORITE_EXISTS_TEXT, FAVORITES_COMMAND,
+                       FAVORITES_LIMIT_REACHED_TEXT, HELP_COMMAND, HELP_TEXT,
+                       METRO_IS_CLOSED_TEXT, SCHEDULE_COMMAND, START_COMMAND,
+                       START_TEXT, WRONG_COMMAND_TEXT)
 from .utils import format_text_with_time_to_train, metro_is_closed
 
 filterwarnings(action='ignore',

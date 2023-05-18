@@ -1,6 +1,6 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from .orm_db import STATIONS_DICT
+from .db import STATIONS_DICT
 
 # Клавиатура с набором кнопок с названием станций
 STATIONS_KEYBOARD = [

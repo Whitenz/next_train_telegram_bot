@@ -1,9 +1,8 @@
 import datetime
 
-from sqlalchemy import (TIME, CheckConstraint, ForeignKey, String,
-                        UniqueConstraint, func)
-from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass,
-                            column_property, mapped_column, relationship)
+from sqlalchemy import TIME, CheckConstraint, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass, column_property,
+                            mapped_column, relationship)
 from typing_extensions import Annotated
 
 TIMESTAMP_TYPE = Annotated[

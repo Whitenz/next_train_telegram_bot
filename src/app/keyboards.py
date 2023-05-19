@@ -5,7 +5,7 @@ from .db import STATIONS_DICT
 # Клавиатура с набором кнопок с названием станций
 STATIONS_KEYBOARD = [
     [InlineKeyboardButton(station_name, callback_data=station_id)]
-    for station_name, station_id in STATIONS_DICT.items()
+    for station_id, station_name in STATIONS_DICT.items()
 ]
 STATIONS_REPLY_MARKUP = InlineKeyboardMarkup(STATIONS_KEYBOARD)
 

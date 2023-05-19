@@ -29,8 +29,8 @@ def get_stations_from_db() -> Sequence[Row | RowMapping | Any]:
 
 # Словарь со всеми станциями в БД
 # Значения не меняются, поэтому подгружается 1 раз из БД при старте приложения
-STATIONS_DICT: dict[str, int] = {
-    Station.station_name: Station.station_id for Station in get_stations_from_db()
+STATIONS_DICT: dict[int, str] = {
+    Station.station_id: Station.station_name for Station in get_stations_from_db()
 }
 
 

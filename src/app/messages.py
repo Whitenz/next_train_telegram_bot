@@ -26,7 +26,7 @@ METRO_IS_CLOSED_TEXT = (
     'Метрополитен закрыт. Часы работы с 06:00 до 00:00.\n'
     'Расписание будет доступно с 05:30.'
 )
-ADD_FAVORITE_TEXT = 'Маршрут "{direction}" добавлен в избранное.'
+ADD_FAVORITE_TEXT = 'Маршрут <b>{direction}</b> добавлен в избранное.'
 FAVORITE_EXISTS_TEXT = 'Маршрут уже есть в избранном.'
 CLEAR_FAVORITES_TEXT = (
     'Список избранных маршрутов очищен.\n'
@@ -38,14 +38,9 @@ FAVORITES_LIMIT_REACHED_TEXT = (
 WRONG_COMMAND_TEXT = 'Некорректная команда.'
 CHOICE_STATION_TEXT = 'Выберите станцию отправления:'
 CHOICE_DIRECTION_TEXT = 'Выберите конечную станцию направления:'
-TEXT_WITH_TIME_TWO_TRAINS = (
-    '<b>{direction}:</b>\n\n'
-    'ближайший поезд через {time_to_train_1} (мин:с)\n'
-    'следующий через {time_to_train_2} (мин:с)'
-)
-TEXT_WITH_TIME_ONE_TRAIN = (
-    '<b>{direction}:</b>\n\n'
-    'последний поезд через {time_to_train_1} (мин:с)'
-)
+DIRECTION_TRAIN_TEXT = '<b>{direction}:</b>'
+CLOSEST_TIME_TRAIN_TEXT = 'Ближайший поезд через {time_to_train} (мин:с)'
+NEXT_TIME_TRAIN_TEXT = 'Следующий через {time_to_train} (мин:с)'
+LAST_TIME_TRAIN_TEXT = 'Последний поезд через {time_to_train_1} (мин:с)'
 TEXT_WITH_TIME_NONE = 'По расписанию поездов сегодня больше нет.'
 CONVERSATION_TIMEOUT_TEXT = 'Время для выбора станций вышло.'

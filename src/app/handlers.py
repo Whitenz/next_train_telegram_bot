@@ -2,18 +2,21 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes, ConversationHandler
 
-from .config import CHOICE_DIRECTION, FINAL_STAGE
-from .db import (delete_favorites_in_db, favorites_limited, insert_favorite_to_db,
-                 insert_user_to_db, select_favorites_from_db, select_schedule_from_db)
+from .config import CHOICE_DIRECTION, FINAL_STAGE, LIMIT_ROW
+from .db import (STATIONS_DICT, delete_favorites_in_db, favorites_limited,
+                 insert_favorite_to_db, insert_user_to_db, select_favorites_from_db,
+                 select_schedule_from_db)
 from .decorators import write_log
 from .keyboards import (DIRECTION_REPLY_MARKUP, END_STATION_DIRECTION,
                         STATIONS_REPLY_MARKUP)
 from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITE_TEXT, CHOICE_DIRECTION_TEXT,
                        CHOICE_STATION_TEXT, CLEAR_FAVORITES_TEXT,
-                       CONVERSATION_TIMEOUT_TEXT, FAVORITE_EXISTS_TEXT,
-                       FAVORITES_LIMIT_REACHED_TEXT, HELP_TEXT, METRO_IS_CLOSED_TEXT,
-                       SCHEDULE_COMMAND, START_TEXT, WRONG_COMMAND_TEXT)
-from .utils import format_text_with_time_to_train, metro_is_closed
+                       CLOSEST_TIME_TRAIN_TEXT, CONVERSATION_TIMEOUT_TEXT,
+                       DIRECTION_TRAIN_TEXT, FAVORITE_EXISTS_TEXT,
+                       FAVORITES_LIMIT_REACHED_TEXT, HELP_TEXT, LAST_TIME_TRAIN_TEXT,
+                       METRO_IS_CLOSED_TEXT, NEXT_TIME_TRAIN_TEXT, SCHEDULE_COMMAND,
+                       START_TEXT, TEXT_WITH_TIME_NONE, WRONG_COMMAND_TEXT)
+from .utils import metro_is_closed
 
 
 @write_log
@@ -114,14 +117,11 @@ async def favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         return
     id_bot_user = update.message.from_user.id
     if user_favorites := await select_favorites_from_db(id_bot_user):
-        schedules = [
-            await select_schedule_from_db(favorite.from_station_id,
-                                          favorite.to_station_id)
-            for favorite in user_favorites
-        ]
-        texts = [await format_text_with_time_to_train(schedule)
-                 for schedule in schedules]
-        text = '\n\n'.join(texts)
+        text = '\n\n'.join(
+            [await _get_text_with_time_to_train(favorite.from_station_id,
+                                                favorite.to_station_id)
+             for favorite in user_favorites]
+        )
     else:
         text = CLEAR_FAVORITES_TEXT
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
@@ -153,8 +153,7 @@ async def _send_time_to_train(update: Update,
                               to_station_id: int) -> None:
     """Функция отправляет пользователю время до ближайших поездов."""
     query = update.callback_query
-    schedules = await select_schedule_from_db(from_station_id, to_station_id)
-    text = await format_text_with_time_to_train(schedules)
+    text = await _get_text_with_time_to_train(from_station_id, to_station_id)
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 
@@ -182,3 +181,33 @@ async def timeout(_: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     if bot_message := context.chat_data.pop('bot_message', None):
         await bot_message.edit_text(CONVERSATION_TIMEOUT_TEXT)
+
+
+async def _get_text_with_time_to_train(from_station_id: int, to_station_id: int) -> str:
+    schedules = await select_schedule_from_db(from_station_id, to_station_id)
+
+    if schedules:
+        text = DIRECTION_TRAIN_TEXT.format(direction=schedules[0].direction) + '\n\n'
+
+        if len(schedules) == 1:
+            return text + LAST_TIME_TRAIN_TEXT.format(
+                time_to_train=schedules[0].time_to_train.strftime('%M:%S')
+            )
+
+        text = text + CLOSEST_TIME_TRAIN_TEXT.format(
+            time_to_train=schedules[0].time_to_train.strftime('%M:%S')
+        )
+        for schedule in schedules[1:LIMIT_ROW + 1]:
+            text = text + '\n' + NEXT_TIME_TRAIN_TEXT.format(
+                time_to_train=schedule.time_to_train.strftime('%M:%S')
+            )
+        return text
+
+    direction = await _get_direction_from_dict(from_station_id, to_station_id)
+    return direction + '\n\n' + TEXT_WITH_TIME_NONE
+
+
+async def _get_direction_from_dict(from_station_id: int, to_station_id: int) -> str:
+    from_station_name = STATIONS_DICT.get(from_station_id)
+    to_station_name = STATIONS_DICT.get(to_station_id)
+    return f'{from_station_name} ➡ {to_station_name}'

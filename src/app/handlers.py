@@ -15,7 +15,7 @@ from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITE_TEXT, CHOICE_DIRECTION
                        DIRECTION_TRAIN_TEXT, FAVORITE_EXISTS_TEXT,
                        FAVORITES_LIMIT_REACHED_TEXT, HELP_TEXT, LAST_TIME_TRAIN_TEXT,
                        METRO_IS_CLOSED_TEXT, NEXT_TIME_TRAIN_TEXT, SCHEDULE_COMMAND,
-                       START_TEXT, TEXT_WITH_TIME_NONE, WRONG_COMMAND_TEXT)
+                       START_TEXT, NONE_TRAIN_TEXT, WRONG_COMMAND_TEXT)
 from .utils import metro_is_closed
 
 
@@ -203,11 +203,8 @@ async def _get_text_with_time_to_train(from_station_id: int, to_station_id: int)
             )
         return text
 
-    direction = await _get_direction_from_dict(from_station_id, to_station_id)
-    return direction + '\n\n' + TEXT_WITH_TIME_NONE
-
-
-async def _get_direction_from_dict(from_station_id: int, to_station_id: int) -> str:
     from_station_name = STATIONS_DICT.get(from_station_id)
     to_station_name = STATIONS_DICT.get(to_station_id)
-    return f'{from_station_name} ➡ {to_station_name}'
+    direction = f'{from_station_name} ➡ {to_station_name}'
+    text = DIRECTION_TRAIN_TEXT.format(direction=direction) + '\n\n' + NONE_TRAIN_TEXT
+    return text

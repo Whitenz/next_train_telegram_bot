@@ -1,5 +1,4 @@
 import datetime
-import os
 from typing import Any, Sequence
 
 from sqlalchemy import Row, RowMapping, asc, create_engine, delete, func, select
@@ -9,14 +8,13 @@ from sqlalchemy.orm import sessionmaker
 
 from telegram import User
 
-from .config import LIMIT_ROW
+from .config import settings
 from .models import BotUser, Favorite, Schedule, Station
 from .utils import is_weekend
 
-sync_engine = create_engine(f'postgresql://{os.getenv("PG_DSN")}', echo=True)
+sync_engine = create_engine(settings.PG_DSN_SYNC, echo=True)
 sync_session = sessionmaker(bind=sync_engine, expire_on_commit=False)
-async_engine = create_async_engine(f'postgresql+asyncpg://{os.getenv("PG_DSN")}',
-                                   echo=True)
+async_engine = create_async_engine(settings.PG_DSN_ASYNC, echo=True)
 async_session = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
@@ -70,7 +68,7 @@ async def select_schedule_from_db(from_station_id: int,
         ).order_by(
             asc(Schedule.time_to_train)
         ).limit(
-            LIMIT_ROW
+            settings.LIMIT_ROW
         )
 
         return (await session.scalars(statement)).all()
@@ -152,4 +150,4 @@ async def favorites_limited(bot_user_id: int) -> bool:
         )
 
         count = await session.scalar(statement)
-        return count >= LIMIT_ROW
+        return count >= settings.LIMIT_FAVORITES

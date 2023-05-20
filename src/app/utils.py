@@ -1,6 +1,6 @@
 import datetime as dt
 
-from .config import CLOSE_TIME_METRO, OPEN_TIME_METRO
+from .config import settings
 
 
 async def is_weekend() -> bool:
@@ -12,4 +12,5 @@ async def is_weekend() -> bool:
 
 async def metro_is_closed() -> bool:
     """Функция проверяет закрыто ли метро в соответствии с часами работы."""
-    return CLOSE_TIME_METRO <= dt.datetime.now().time() <= OPEN_TIME_METRO
+    now_time = dt.datetime.now().time()
+    return settings.CLOSE_TIME_METRO <= now_time <= settings.OPEN_TIME_METRO

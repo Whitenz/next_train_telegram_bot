@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes, ConversationHandler
 
-from .config import CHOICE_DIRECTION, FINAL_STAGE, LIMIT_ROW
+from .config import settings
 from .db import (STATIONS_DICT, delete_favorites_in_db, favorites_limited,
                  insert_favorite_to_db, insert_user_to_db, select_favorites_from_db,
                  select_schedule_from_db)
@@ -14,8 +14,8 @@ from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITE_TEXT, CHOICE_DIRECTION
                        CLOSEST_TIME_TRAIN_TEXT, CONVERSATION_TIMEOUT_TEXT,
                        DIRECTION_TRAIN_TEXT, FAVORITE_EXISTS_TEXT,
                        FAVORITES_LIMIT_REACHED_TEXT, HELP_TEXT, LAST_TIME_TRAIN_TEXT,
-                       METRO_IS_CLOSED_TEXT, NEXT_TIME_TRAIN_TEXT, SCHEDULE_COMMAND,
-                       START_TEXT, NONE_TRAIN_TEXT, WRONG_COMMAND_TEXT)
+                       METRO_IS_CLOSED_TEXT, NEXT_TIME_TRAIN_TEXT, NONE_TRAIN_TEXT,
+                       SCHEDULE_COMMAND, START_TEXT, WRONG_COMMAND_TEXT)
 from .utils import metro_is_closed
 
 
@@ -59,7 +59,7 @@ async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         )
         context.chat_data['bot_message'] = bot_message
         context.chat_data['command'] = command
-        return CHOICE_DIRECTION
+        return settings.CHOICE_DIRECTION
     return ConversationHandler.END
 
 
@@ -82,7 +82,7 @@ async def directions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.chat_data['from_station_id'] = from_station_id
     await query.edit_message_text(text=CHOICE_DIRECTION_TEXT,
                                   reply_markup=DIRECTION_REPLY_MARKUP)
-    return FINAL_STAGE
+    return settings.FINAL_STAGE
 
 
 @write_log
@@ -197,7 +197,7 @@ async def _get_text_with_time_to_train(from_station_id: int, to_station_id: int)
         text = text + CLOSEST_TIME_TRAIN_TEXT.format(
             time_to_train=schedules[0].time_to_train.strftime('%M:%S')
         )
-        for schedule in schedules[1:LIMIT_ROW + 1]:
+        for schedule in schedules[1:settings.LIMIT_ROW + 1]:
             text = text + '\n' + NEXT_TIME_TRAIN_TEXT.format(
                 time_to_train=schedule.time_to_train.strftime('%M:%S')
             )

@@ -5,7 +5,7 @@ from typing import Callable
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from .config import LOGGER_TEXT
+from .config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,6 @@ def write_log(func: Callable) -> Callable:
         logger_kwargs = {'id_bot_user': update.effective_user.id,
                          'first_name': update.effective_user.first_name,
                          'command': command}
-        logger.info(LOGGER_TEXT.format(**logger_kwargs))
+        logger.info(settings.LOGGER_TEXT.format(**logger_kwargs))
         return await func(update, context)
     return wrapper

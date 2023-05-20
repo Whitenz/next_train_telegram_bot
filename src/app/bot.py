@@ -4,7 +4,7 @@ from telegram.ext import (ApplicationBuilder, CallbackQueryHandler, CommandHandl
                           ConversationHandler, MessageHandler, filters)
 from telegram.warnings import PTBUserWarning
 
-from .config import BOT_TOKEN, CHOICE_DIRECTION, CONVERSATION_TIMEOUT, FINAL_STAGE
+from .config import settings
 from .handlers import (clear_favorites, complete_conv, directions, favorites,
                        help_handler, start, stations, timeout, wrong_command)
 from .messages import (ADD_FAVORITE_COMMAND, CLEAR_FAVORITES_COMMAND, FAVORITES_COMMAND,
@@ -24,7 +24,7 @@ COMMAND_HANDLERS = {
 
 def start_bot() -> None:
     """Главная функция, стартующая бота."""
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    application = ApplicationBuilder().token(settings.BOT_TOKEN).build()
 
     for command, callback in COMMAND_HANDLERS.items():
         application.add_handler(CommandHandler(command, callback))
@@ -34,15 +34,15 @@ def start_bot() -> None:
             CommandHandler((SCHEDULE_COMMAND, ADD_FAVORITE_COMMAND), stations)
         ],
         states={
-            CHOICE_DIRECTION: [CallbackQueryHandler(directions)],
-            FINAL_STAGE: [CallbackQueryHandler(complete_conv)],
+            settings.CHOICE_DIRECTION: [CallbackQueryHandler(directions)],
+            settings.FINAL_STAGE: [CallbackQueryHandler(complete_conv)],
             ConversationHandler.TIMEOUT: [
                 MessageHandler(filters.ALL, timeout),
                 CallbackQueryHandler(timeout)
             ]
         },
         fallbacks=[MessageHandler(filters.ALL, wrong_command)],
-        conversation_timeout=CONVERSATION_TIMEOUT
+        conversation_timeout=settings.CONVERSATION_TIMEOUT
     )
     application.add_handler(conv_handler)
 

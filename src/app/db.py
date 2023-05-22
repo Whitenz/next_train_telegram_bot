@@ -64,7 +64,9 @@ async def select_schedule_from_db(from_station_id: int,
             Schedule.from_station_id == from_station_id,
             Schedule.to_station_id == to_station_id,
             Schedule.is_weekend.is_(await is_weekend()),
-            Schedule.time_to_train < datetime.timedelta(hours=1)
+            Schedule.time_to_train < datetime.timedelta(
+                minutes=settings.MAX_WAITING_TIME
+            )
         ).order_by(
             asc(Schedule.time_to_train)
         ).limit(

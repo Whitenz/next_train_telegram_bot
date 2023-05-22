@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     CHOICE_DIRECTION: conint(ge=0) = 0
     FINAL_STAGE: conint(ge=0) = 1
     CONVERSATION_TIMEOUT: conint(ge=60, le=3600) = 60 * 3
+    MAX_WAITING_TIME: conint(ge=15, le=60) = 60  # minutes
     LIMIT_ROW: conint(ge=1) = 2
     LIMIT_FAVORITES: conint(ge=1) = 2
 

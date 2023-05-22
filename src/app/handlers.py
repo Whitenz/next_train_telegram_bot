@@ -118,8 +118,8 @@ async def favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     id_bot_user = update.message.from_user.id
     if user_favorites := await select_favorites_from_db(id_bot_user):
         text = '\n\n'.join(
-            [await _get_text_with_time_to_train(favorite.from_station_id,
-                                                favorite.to_station_id)
+            [await get_text_with_time_to_train(favorite.from_station_id,
+                                               favorite.to_station_id)
              for favorite in user_favorites]
         )
     else:
@@ -153,7 +153,7 @@ async def _send_time_to_train(update: Update,
                               to_station_id: int) -> None:
     """Функция отправляет пользователю время до ближайших поездов."""
     query = update.callback_query
-    text = await _get_text_with_time_to_train(from_station_id, to_station_id)
+    text = await get_text_with_time_to_train(from_station_id, to_station_id)
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 
@@ -183,7 +183,7 @@ async def timeout(_: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await bot_message.edit_text(CONVERSATION_TIMEOUT_TEXT)
 
 
-async def _get_text_with_time_to_train(from_station_id: int, to_station_id: int) -> str:
+async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) -> str:
     schedules = await select_schedule_from_db(from_station_id, to_station_id)
 
     if schedules:
@@ -206,5 +206,4 @@ async def _get_text_with_time_to_train(from_station_id: int, to_station_id: int)
     from_station_name = STATIONS_DICT.get(from_station_id)
     to_station_name = STATIONS_DICT.get(to_station_id)
     direction = f'{from_station_name} ➡ {to_station_name}'
-    text = DIRECTION_TRAIN_TEXT.format(direction=direction) + '\n\n' + NONE_TRAIN_TEXT
-    return text
+    return DIRECTION_TRAIN_TEXT.format(direction=direction) + '\n\n' + NONE_TRAIN_TEXT

@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS station (
-    station_id INTEGER PRIMARY KEY,
+    station_id SERIAL PRIMARY KEY,
     station_name VARCHAR(30) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS schedule (
-    schedule_id INTEGER PRIMARY KEY,
+    schedule_id SERIAL PRIMARY KEY,
     from_station_id INTEGER NOT NULL,
     to_station_id INTEGER NOT NULL,
     is_weekend BOOLEAN NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS schedule (
 );
 
 CREATE TABLE IF NOT EXISTS bot_user (
-    bot_user_id INTEGER PRIMARY KEY NOT NULL,
+    bot_user_id INTEGER PRIMARY KEY NOT NULL UNIQUE,
     first_name VARCHAR NOT NULL,
     last_name VARCHAR,
     username VARCHAR,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS bot_user (
 );
 
 CREATE TABLE IF NOT EXISTS favorite (
-    favorite_id INTEGER PRIMARY KEY,
+    favorite_id SERIAL PRIMARY KEY,
     bot_user_id INTEGER NOT NULL,
     from_station_id INTEGER NOT NULL,
     to_station_id INTEGER NOT NULL,
@@ -46,7 +46,8 @@ VALUES (1, 'Космонавтов'),
        (6, 'Площадь 1905г'),
        (7, 'Геологическая'),
        (8, 'Чкаловская'),
-       (9, 'Ботаническая');
+       (9, 'Ботаническая')
+ON CONFLICT DO NOTHING;
 
 INSERT INTO schedule (from_station_id, to_station_id, is_weekend, departure_time)
 VALUES  (1, 9, False, '06:05'),
@@ -4620,4 +4621,5 @@ VALUES  (1, 9, False, '06:05'),
         (9, 1, True, '23:37'),
         (9, 1, True, '23:46'),
         (9, 1, True, '23:56'),
-        (9, 1, True, '00:05');
+        (9, 1, True, '00:05')
+ON CONFLICT DO NOTHING;

@@ -107,7 +107,7 @@ async def complete_conv(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 
 @write_log
-async def favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def favorites(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Обработчик команды /favorites.
     Отправляет время до ближайших поездов по избранным маршрутам пользователя.
@@ -115,16 +115,21 @@ async def favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     if await metro_is_closed():
         await update.message.reply_text(METRO_IS_CLOSED_TEXT)
         return
-    id_bot_user = update.message.from_user.id
-    if user_favorites := await select_favorites_from_db(id_bot_user):
-        text = '\n\n'.join(
-            [await get_text_with_time_to_train(favorite.from_station_id,
-                                               favorite.to_station_id)
-             for favorite in user_favorites]
-        )
+
+    bot_user = update.effective_user
+    if bot_user:
+        await insert_user_to_db(bot_user)
+        if user_favorites := await select_favorites_from_db(bot_user):
+            text = '\n\n'.join(
+                [await get_text_with_time_to_train(favorite.from_station_id,
+                                                   favorite.to_station_id)
+                 for favorite in user_favorites]
+            )
+        else:
+            text = CLEAR_FAVORITES_TEXT
+        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
     else:
-        text = CLEAR_FAVORITES_TEXT
-    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+        await wrong_command(update, context)
 
 
 @write_log

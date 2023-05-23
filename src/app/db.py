@@ -103,7 +103,7 @@ async def insert_favorite_to_db(bot_user_id: int,
         return new_favorite
 
 
-async def select_favorites_from_db(bot_user_id: int) -> Sequence[Favorite] | None:
+async def select_favorites_from_db(bot_user: User) -> Sequence[Favorite] | None:
     """
     Функция делает запрос к БД и получает из таблицы 'favorite' избранные
     маршруты пользователя. Возвращает список объектов Favorite.
@@ -112,7 +112,7 @@ async def select_favorites_from_db(bot_user_id: int) -> Sequence[Favorite] | Non
         statement = select(
             Favorite
         ).where(
-            Favorite.bot_user_id == bot_user_id
+            Favorite.bot_user_id == bot_user.id
         ).order_by(
             Favorite.favorite_id
         )

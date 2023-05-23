@@ -1,0 +1,31 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:15.3-alpine
+    container_name: next_train_telegram_bot_db_cont
+    restart: always
+    volumes:
+      - db_value:/var/lib/postgresql/data/
+      - ./src/data/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    env_file:
+      - .env
+
+  backend:
+    image: whitenz/next_train:v0.99
+    container_name: next_train_telegram_bot_backend_cont
+    volumes:
+      - db_value:/data/
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    env_file:
+      - .env
+
+volumes:
+  db_value:

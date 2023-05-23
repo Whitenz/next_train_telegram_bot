@@ -1,7 +1,6 @@
 import datetime
 import logging
-import os
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from pydantic import BaseSettings, DirectoryPath, PostgresDsn, conint
 
@@ -10,8 +9,8 @@ class Settings(BaseSettings):
     BOT_TOKEN: str
     PG_DSN_SYNC: PostgresDsn
     PG_DSN_ASYNC: PostgresDsn
-    BASE_DIR: DirectoryPath = os.path.dirname(os.path.dirname(__file__))
-    LOG_FILENAME: Path = os.path.join(BASE_DIR, 'data', 'bot.log')
+    BASE_DIR: DirectoryPath = Path(__file__).parents[1]
+    LOG_FILENAME: PurePath = PurePath.joinpath(BASE_DIR, 'data', 'bot.log')
     LOGGER_TEXT: str = (
         'Пользователь {first_name} ({id_bot_user}) отправил команду "{command}"'
     )
@@ -25,8 +24,8 @@ class Settings(BaseSettings):
     LIMIT_FAVORITES: conint(ge=1) = 2
 
     class Config:
-        env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-        env_file_encoding = 'utf-8'
+        env_file: PurePath = PurePath.joinpath(Path(__file__).parents[2], '.env')
+        env_file_encoding: str = 'utf-8'
 
 
 settings = Settings()

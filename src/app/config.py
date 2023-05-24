@@ -2,18 +2,29 @@ import datetime
 import logging
 from pathlib import Path, PurePath
 
-from pydantic import BaseSettings, DirectoryPath, PostgresDsn, conint
+from pydantic import BaseSettings, DirectoryPath, conint
 
 
 class Settings(BaseSettings):
+    # env variables
     BOT_TOKEN: str
-    PG_DSN_SYNC: PostgresDsn
-    PG_DSN_ASYNC: PostgresDsn
+    DB_DRIVERNAME_SYNC: str
+    DB_DRIVERNAME_ASYNC: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    DB_HOST: str
+    DB_PORT: int
+    DB_NAME: str
+    TZ: str
+
+    # path variables
     BASE_DIR: DirectoryPath = Path(__file__).parents[1]
+
+    # logger params
     LOG_FILENAME: PurePath = PurePath.joinpath(BASE_DIR, 'data', 'bot.log')
-    LOGGER_TEXT: str = (
-        'Пользователь {first_name} ({id_bot_user}) отправил команду "{command}"'
-    )
+    LOGGER_TEXT: str = 'Пользователь {first_name} ({id}) отправил команду "{command}"'
+
+    # bot params
     OPEN_TIME_METRO: datetime.time = datetime.time(hour=5, minute=30)
     CLOSE_TIME_METRO: datetime.time = datetime.time(hour=0, minute=30)
     CHOICE_DIRECTION: conint(ge=0) = 0

@@ -1,7 +1,7 @@
 import datetime
-from typing import Any, Sequence
+from typing import Sequence
 
-from sqlalchemy import Row, RowMapping, asc, create_engine, delete, func, select
+from sqlalchemy import URL, asc, create_engine, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -12,13 +12,22 @@ from .config import settings
 from .models import BotUser, Favorite, Schedule, Station
 from .utils import is_weekend
 
-sync_engine = create_engine(settings.PG_DSN_SYNC, echo=True)
+URL_DB_SYNC = URL.create(
+    drivername=settings.DB_DRIVERNAME_SYNC,
+    username=settings.POSTGRES_USER,
+    password=settings.POSTGRES_PASSWORD,
+    host=settings.DB_HOST,
+    port=settings.DB_PORT,
+    database=settings.DB_NAME
+)
+URL_DB_ASYNC = URL_DB_SYNC.set(drivername=settings.DB_DRIVERNAME_ASYNC)
+sync_engine = create_engine(url=URL_DB_SYNC, echo=True)
 sync_session = sessionmaker(bind=sync_engine, expire_on_commit=False)
-async_engine = create_async_engine(settings.PG_DSN_ASYNC, echo=True)
+async_engine = create_async_engine(url=URL_DB_ASYNC, echo=True)
 async_session = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
-def get_stations_from_db() -> Sequence[Row | RowMapping | Any]:
+def get_stations_from_db() -> Sequence[Station]:
     """Функция делает запрос к БД и возвращает список с объектами Station."""
     with sync_session() as session:
         statement = select(Station)

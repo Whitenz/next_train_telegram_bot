@@ -21,7 +21,7 @@ def write_log(func: Callable) -> Callable:
             command = update.callback_query.data
         else:
             command = update.message.text
-        logger_kwargs = {'id_bot_user': update.effective_user.id,
+        logger_kwargs = {'id': update.effective_user.id,
                          'first_name': update.effective_user.first_name,
                          'command': command}
         logger.info(settings.LOGGER_TEXT.format(**logger_kwargs))

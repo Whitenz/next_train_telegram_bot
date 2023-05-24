@@ -8,9 +8,9 @@ from sqlalchemy.orm import sessionmaker
 
 from telegram import User
 
-from .config import settings
-from .models import BotUser, Favorite, Schedule, Station
-from .utils import is_weekend
+from app import utils
+from app.config import settings
+from app.models import BotUser, Favorite, Schedule, Station
 
 URL_DB_SYNC = URL.create(
     drivername=settings.DB_DRIVERNAME_SYNC,
@@ -27,7 +27,7 @@ async_engine = create_async_engine(url=URL_DB_ASYNC, echo=True)
 async_session = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
-def get_stations_from_db() -> Sequence[Station]:
+def get_stations() -> Sequence[Station]:
     """Функция делает запрос к БД и возвращает список с объектами Station."""
     with sync_session() as session:
         statement = select(Station)
@@ -37,11 +37,11 @@ def get_stations_from_db() -> Sequence[Station]:
 # Словарь со всеми станциями в БД
 # Значения не меняются, поэтому подгружается 1 раз из БД при старте приложения
 STATIONS_DICT: dict[int, str] = {
-    Station.station_id: Station.station_name for Station in get_stations_from_db()
+    Station.station_id: Station.station_name for Station in get_stations()
 }
 
 
-async def insert_user_to_db(bot_user: User) -> None:
+async def insert_user(bot_user: User) -> None:
     """
     Функция делает запрос к БД и добавляет нового пользователя бота в БД>.
     """
@@ -60,8 +60,8 @@ async def insert_user_to_db(bot_user: User) -> None:
         await session.commit()
 
 
-async def select_schedule_from_db(from_station_id: int,
-                                  to_station_id: int) -> Sequence[Schedule] | None:
+async def select_schedule(from_station_id: int,
+                          to_station_id: int) -> Sequence[Schedule | None]:
     """
     Функция делает запрос к БД с заданным id станций.
     Возвращает список с объектами Schedule.
@@ -72,7 +72,7 @@ async def select_schedule_from_db(from_station_id: int,
         ).where(
             Schedule.from_station_id == from_station_id,
             Schedule.to_station_id == to_station_id,
-            Schedule.is_weekend.is_(await is_weekend()),
+            Schedule.is_weekend.is_(await utils.is_weekend()),
             Schedule.time_to_train < datetime.timedelta(
                 minutes=settings.MAX_WAITING_TIME
             )
@@ -85,9 +85,9 @@ async def select_schedule_from_db(from_station_id: int,
         return (await session.scalars(statement)).all()
 
 
-async def insert_favorite_to_db(bot_user_id: int,
-                                from_station_id: int,
-                                to_station_id: int) -> Favorite | None:
+async def insert_favorite(bot_user: User,
+                          from_station_id: int,
+                          to_station_id: int) -> Favorite | None:
     """
     Функция делает запрос к БД и добавляет избранный маршрут пользователя
     в таблицу 'favorite'. Возвращает созданный объект Favorite.
@@ -96,7 +96,7 @@ async def insert_favorite_to_db(bot_user_id: int,
         statement = insert(
             Favorite
         ).values(
-            bot_user_id=bot_user_id,
+            bot_user_id=bot_user.id,
             from_station_id=from_station_id,
             to_station_id=to_station_id
         ).on_conflict_do_nothing(
@@ -112,7 +112,7 @@ async def insert_favorite_to_db(bot_user_id: int,
         return new_favorite
 
 
-async def select_favorites_from_db(bot_user: User) -> Sequence[Favorite] | None:
+async def select_favorites(bot_user: User) -> Sequence[Favorite | None]:
     """
     Функция делает запрос к БД и получает из таблицы 'favorite' избранные
     маршруты пользователя. Возвращает список объектов Favorite.
@@ -129,7 +129,7 @@ async def select_favorites_from_db(bot_user: User) -> Sequence[Favorite] | None:
         return (await session.scalars(statement)).all()
 
 
-async def delete_favorites_in_db(bot_user_id: int) -> None:
+async def delete_favorites(bot_user: User) -> None:
     """
     Функция делает запрос к БД и удаляет из таблицы 'favorite' все избранные
     маршруты пользователя.
@@ -138,14 +138,14 @@ async def delete_favorites_in_db(bot_user_id: int) -> None:
         statement = delete(
             Favorite
         ).where(
-            Favorite.bot_user_id == bot_user_id
+            Favorite.bot_user_id == bot_user.id
         )
 
         await session.execute(statement)
         await session.commit()
 
 
-async def favorites_limited(bot_user_id: int) -> bool:
+async def favorites_limited(bot_user: User) -> bool:
     """
     Функция делает запрос к БД и проверяет количество избранных маршрутов в
      таблице 'favorite' для данного пользователя. Возвращает результат
@@ -157,7 +157,7 @@ async def favorites_limited(bot_user_id: int) -> bool:
         ).select_from(
             Favorite
         ).where(
-            Favorite.bot_user_id == bot_user_id
+            Favorite.bot_user_id == bot_user.id
         )
 
         count = await session.scalar(statement)

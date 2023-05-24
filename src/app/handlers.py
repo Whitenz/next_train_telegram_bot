@@ -2,21 +2,10 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes, ConversationHandler
 
-from .config import settings
-from .db import (STATIONS_DICT, delete_favorites_in_db, favorites_limited,
-                 insert_favorite_to_db, insert_user_to_db, select_favorites_from_db,
-                 select_schedule_from_db)
-from .decorators import write_log
-from .keyboards import (DIRECTION_REPLY_MARKUP, END_STATION_DIRECTION,
-                        STATIONS_REPLY_MARKUP)
-from .messages import (ADD_FAVORITE_COMMAND, ADD_FAVORITE_TEXT, CHOICE_DIRECTION_TEXT,
-                       CHOICE_STATION_TEXT, CLEAR_FAVORITES_TEXT,
-                       CLOSEST_TIME_TRAIN_TEXT, CONVERSATION_TIMEOUT_TEXT,
-                       DIRECTION_TRAIN_TEXT, FAVORITE_EXISTS_TEXT,
-                       FAVORITES_LIMIT_REACHED_TEXT, HELP_TEXT, LAST_TIME_TRAIN_TEXT,
-                       METRO_IS_CLOSED_TEXT, NEXT_TIME_TRAIN_TEXT, NONE_TRAIN_TEXT,
-                       SCHEDULE_COMMAND, START_TEXT, WRONG_COMMAND_TEXT)
-from .utils import metro_is_closed
+from app import commands, db, keyboards, messages
+from app.config import settings
+from app.decorators import write_log
+from app.utils import metro_is_closed
 
 
 @write_log
@@ -24,8 +13,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработка команды /start. Отправляет приветственное сообщение."""
     bot_user = update.effective_user
     if bot_user:
-        text = START_TEXT.format(bot_user.first_name) + '\n\n' + HELP_TEXT
-        await insert_user_to_db(bot_user)
+        text = messages.START.format(bot_user.first_name) + '\n\n' + messages.HELP
+        await db.insert_user(bot_user)
         await update.message.reply_text(text)
     else:
         await wrong_command(update, context)
@@ -34,7 +23,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 @write_log
 async def help_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработка команды /help. Отправляет справочное сообщение."""
-    await update.message.reply_text(HELP_TEXT)
+    await update.message.reply_text(messages.HELP)
 
 
 @write_log
@@ -48,14 +37,14 @@ async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
      полон, то также отправляет список станций.
     """
     command = update.message.text
-    id_bot_user = update.message.from_user.id
-    if SCHEDULE_COMMAND in command and await metro_is_closed():
-        await update.message.reply_text(METRO_IS_CLOSED_TEXT)
-    elif ADD_FAVORITE_COMMAND in command and await favorites_limited(id_bot_user):
-        await update.message.reply_text(FAVORITES_LIMIT_REACHED_TEXT)
+    bot_user = update.effective_user
+    if commands.SCHEDULE in command and await metro_is_closed():
+        await update.message.reply_text(messages.METRO_IS_CLOSED)
+    elif commands.ADD_FAVORITE in command and await db.favorites_limited(bot_user):
+        await update.message.reply_text(messages.FAVORITES_LIMIT_REACHED)
     else:
         bot_message = await update.message.reply_text(
-            CHOICE_STATION_TEXT, reply_markup=STATIONS_REPLY_MARKUP
+            messages.CHOICE_STATION, reply_markup=keyboards.STATIONS_REPLY_MARKUP
         )
         context.chat_data['bot_message'] = bot_message
         context.chat_data['command'] = command
@@ -71,17 +60,18 @@ async def directions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     from_station_id = int(query.data)
     command = context.chat_data.get('command')
 
-    if to_station_id := END_STATION_DIRECTION.get(from_station_id):
-        if SCHEDULE_COMMAND in command:
+    if to_station_id := keyboards.END_STATION_DIRECTION.get(from_station_id):
+        if commands.SCHEDULE in command:
             await _send_time_to_train(update, from_station_id, to_station_id)
-        if ADD_FAVORITE_COMMAND in command:
+        if commands.ADD_FAVORITE in command:
             await _save_favorite(update, from_station_id, to_station_id)
         context.chat_data.clear()
         return ConversationHandler.END
 
     context.chat_data['from_station_id'] = from_station_id
-    await query.edit_message_text(text=CHOICE_DIRECTION_TEXT,
-                                  reply_markup=DIRECTION_REPLY_MARKUP)
+    await query.edit_message_text(
+        text=messages.CHOICE_DIRECTION, reply_markup=keyboards.DIRECTION_REPLY_MARKUP
+    )
     return settings.FINAL_STAGE
 
 
@@ -98,9 +88,9 @@ async def complete_conv(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     command = context.chat_data.get('command')
     from_station_id = context.chat_data.get('from_station_id')
     to_station_id = int(query.data)
-    if SCHEDULE_COMMAND in command:
+    if commands.SCHEDULE in command:
         await _send_time_to_train(update, from_station_id, to_station_id)
-    if ADD_FAVORITE_COMMAND in command:
+    if commands.ADD_FAVORITE in command:
         await _save_favorite(update, from_station_id, to_station_id)
     context.chat_data.clear()
     return ConversationHandler.END
@@ -113,20 +103,20 @@ async def favorites(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     Отправляет время до ближайших поездов по избранным маршрутам пользователя.
     """
     if await metro_is_closed():
-        await update.message.reply_text(METRO_IS_CLOSED_TEXT)
+        await update.message.reply_text(messages.METRO_IS_CLOSED)
         return
 
     bot_user = update.effective_user
     if bot_user:
-        await insert_user_to_db(bot_user)
-        if user_favorites := await select_favorites_from_db(bot_user):
+        await db.insert_user(bot_user)
+        if user_favorites := await db.select_favorites(bot_user):
             text = '\n\n'.join(
                 [await get_text_with_time_to_train(favorite.from_station_id,
                                                    favorite.to_station_id)
                  for favorite in user_favorites]
             )
         else:
-            text = CLEAR_FAVORITES_TEXT
+            text = messages.CLEAR_FAVORITES
         await update.message.reply_text(text, parse_mode=ParseMode.HTML)
     else:
         await wrong_command(update, context)
@@ -138,9 +128,9 @@ async def clear_favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     Обработчик команды /favorites.
     Удаляет из БД все избранные маршруты пользователя.
     """
-    id_bot_user = update.message.from_user.id
-    await delete_favorites_in_db(id_bot_user)
-    await update.message.reply_text(CLEAR_FAVORITES_TEXT)
+    bot_user = update.effective_user
+    await db.delete_favorites(bot_user)
+    await update.message.reply_text(messages.CLEAR_FAVORITES)
 
 
 @write_log
@@ -150,7 +140,7 @@ async def wrong_command(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     Функция обрабатывает все сообщения и команды, если бот их не должен
      обрабатывать в данный момент.
     """
-    await update.message.reply_text(WRONG_COMMAND_TEXT)
+    await update.message.reply_text(messages.WRONG)
 
 
 async def _send_time_to_train(update: Update,
@@ -167,14 +157,12 @@ async def _save_favorite(update: Update,
                          to_station_id: int) -> None:
     """Функция сохраняет маршрут в БД и отправляет ответ пользователю."""
     query = update.callback_query
-    id_bot_user = query.from_user.id
-    new_favorite = await insert_favorite_to_db(id_bot_user,
-                                               from_station_id,
-                                               to_station_id)
+    bot_user = query.from_user
+    new_favorite = await db.insert_favorite(bot_user, from_station_id, to_station_id)
     if new_favorite:
-        text = ADD_FAVORITE_TEXT.format(direction=new_favorite.direction)
+        text = messages.ADD_FAVORITE.format(direction=new_favorite.direction)
     else:
-        text = FAVORITE_EXISTS_TEXT
+        text = messages.FAVORITE_EXISTS
     await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 
@@ -185,30 +173,35 @@ async def timeout(_: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
      в диалоге.
     """
     if bot_message := context.chat_data.pop('bot_message', None):
-        await bot_message.edit_text(CONVERSATION_TIMEOUT_TEXT)
+        await bot_message.edit_text(messages.CONVERSATION_TIMEOUT)
 
 
 async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) -> str:
-    schedules = await select_schedule_from_db(from_station_id, to_station_id)
+    schedules = await db.select_schedule(from_station_id, to_station_id)
 
     if schedules:
-        text = DIRECTION_TRAIN_TEXT.format(direction=schedules[0].direction) + '\n\n'
+        text = messages.DIRECTION_TRAIN.format(
+            direction=schedules[0].direction) + '\n\n'
 
         if len(schedules) == 1:
-            return text + LAST_TIME_TRAIN_TEXT.format(
+            return text + messages.LAST_TIME_TRAIN.format(
                 time_to_train=schedules[0].time_to_train.strftime('%M:%S')
             )
 
-        text = text + CLOSEST_TIME_TRAIN_TEXT.format(
+        text = text + messages.CLOSEST_TIME_TRAIN.format(
             time_to_train=schedules[0].time_to_train.strftime('%M:%S')
         )
         for schedule in schedules[1:settings.LIMIT_ROW + 1]:
-            text = text + '\n' + NEXT_TIME_TRAIN_TEXT.format(
+            text = text + '\n' + messages.NEXT_TIME_TRAIN.format(
                 time_to_train=schedule.time_to_train.strftime('%M:%S')
             )
         return text
 
-    from_station_name = STATIONS_DICT.get(from_station_id)
-    to_station_name = STATIONS_DICT.get(to_station_id)
+    from_station_name = db.STATIONS_DICT.get(from_station_id)
+    to_station_name = db.STATIONS_DICT.get(to_station_id)
     direction = f'{from_station_name} ➡ {to_station_name}'
-    return DIRECTION_TRAIN_TEXT.format(direction=direction) + '\n\n' + NONE_TRAIN_TEXT
+    return (
+        messages.DIRECTION_TRAIN.format(direction=direction)
+        + '\n\n'
+        + messages.NONE_TRAIN
+    )

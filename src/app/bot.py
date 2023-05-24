@@ -4,21 +4,18 @@ from telegram.ext import (ApplicationBuilder, CallbackQueryHandler, CommandHandl
                           ConversationHandler, MessageHandler, filters)
 from telegram.warnings import PTBUserWarning
 
-from .config import settings
-from .handlers import (clear_favorites, complete_conv, directions, favorites,
-                       help_handler, start, stations, timeout, wrong_command)
-from .messages import (ADD_FAVORITE_COMMAND, CLEAR_FAVORITES_COMMAND, FAVORITES_COMMAND,
-                       HELP_COMMAND, SCHEDULE_COMMAND, START_COMMAND)
+from app import commands, handlers
+from app.config import settings
 
 filterwarnings(action='ignore',
                message=r'.*CallbackQueryHandler',
                category=PTBUserWarning)
 
 COMMAND_HANDLERS = {
-    START_COMMAND: start,
-    HELP_COMMAND: help_handler,
-    FAVORITES_COMMAND: favorites,
-    CLEAR_FAVORITES_COMMAND: clear_favorites
+    commands.START: handlers.start,
+    commands.HELP: handlers.help_handler,
+    commands.FAVORITES: handlers.favorites,
+    commands.CLEAR_FAVORITES: handlers.clear_favorites
 }
 
 
@@ -31,21 +28,23 @@ def start_bot() -> None:
 
     conv_handler = ConversationHandler(
         entry_points=[
-            CommandHandler((SCHEDULE_COMMAND, ADD_FAVORITE_COMMAND), stations)
+            CommandHandler(
+                (commands.SCHEDULE, commands.ADD_FAVORITE), handlers.stations
+            )
         ],
         states={
-            settings.CHOICE_DIRECTION: [CallbackQueryHandler(directions)],
-            settings.FINAL_STAGE: [CallbackQueryHandler(complete_conv)],
+            settings.CHOICE_DIRECTION: [CallbackQueryHandler(handlers.directions)],
+            settings.FINAL_STAGE: [CallbackQueryHandler(handlers.complete_conv)],
             ConversationHandler.TIMEOUT: [
-                MessageHandler(filters.ALL, timeout),
-                CallbackQueryHandler(timeout)
+                MessageHandler(filters.ALL, handlers.timeout),
+                CallbackQueryHandler(handlers.timeout)
             ]
         },
-        fallbacks=[MessageHandler(filters.ALL, wrong_command)],
+        fallbacks=[MessageHandler(filters.ALL, handlers.wrong_command)],
         conversation_timeout=settings.CONVERSATION_TIMEOUT
     )
     application.add_handler(conv_handler)
 
-    application.add_handler(MessageHandler(filters.ALL, wrong_command))
+    application.add_handler(MessageHandler(filters.ALL, handlers.wrong_command))
 
     application.run_polling()

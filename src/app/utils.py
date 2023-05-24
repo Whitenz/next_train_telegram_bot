@@ -1,6 +1,6 @@
 import datetime as dt
 
-from .config import settings
+from app.config import settings
 
 
 async def is_weekend() -> bool:

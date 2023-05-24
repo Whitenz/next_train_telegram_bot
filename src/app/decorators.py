@@ -5,7 +5,7 @@ from typing import Callable
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from .config import settings
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 

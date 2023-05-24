@@ -35,7 +35,10 @@ class Settings(BaseSettings):
     LIMIT_FAVORITES: conint(ge=1) = 2
 
     class Config:
-        env_file: PurePath = PurePath.joinpath(Path(__file__).parents[2], '.env')
+        env_file: PurePath = (
+            PurePath.joinpath(Path(__file__).parents[2], '.env.prod'),
+            PurePath.joinpath(Path(__file__).parents[2], '.env.dev')
+        )
         env_file_encoding: str = 'utf-8'
 
 
@@ -48,3 +51,4 @@ logging.basicConfig(
     level=logging.INFO,
     encoding='utf-8'
 )
+logging.getLogger('httpx').setLevel(logging.WARNING)

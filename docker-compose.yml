@@ -2,10 +2,10 @@ version: '3.9'
 services:
   db:
     image: postgres:15.3-alpine
-    container_name: next_train_telegram_bot_db_cont
+    container_name: next_train_db_cont
     restart: always
     volumes:
-      - db_value:/var/lib/postgresql/data/
+      - next_train_vol:/var/lib/postgresql/data/
       - ./src/data/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${PGUSER}"]
@@ -17,9 +17,9 @@ services:
 
   backend:
     image: whitenz/next_train:latest
-    container_name: next_train_telegram_bot_backend_cont
+    container_name: next_train_backend_cont
     volumes:
-      - db_value:/data/
+      - next_train_vol:/data/
     depends_on:
       db:
         condition: service_healthy
@@ -28,4 +28,5 @@ services:
       - .env.prod
 
 volumes:
-  db_value:
+  next_train_vol:
+    name: next_train_vol

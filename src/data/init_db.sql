@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS schedule (
 );
 
 CREATE TABLE IF NOT EXISTS bot_user (
-    bot_user_id INTEGER PRIMARY KEY NOT NULL UNIQUE,
+    bot_user_id BIGINT PRIMARY KEY NOT NULL UNIQUE,
     first_name VARCHAR NOT NULL,
     last_name VARCHAR,
     username VARCHAR,

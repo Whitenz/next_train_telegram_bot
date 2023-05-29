@@ -1,6 +1,7 @@
 import datetime
 
-from sqlalchemy import TIME, CheckConstraint, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import (BIGINT, TIME, CheckConstraint, ForeignKey, String,
+                        UniqueConstraint, func)
 from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass, column_property,
                             mapped_column, relationship)
 from typing_extensions import Annotated
@@ -65,7 +66,7 @@ class BotUser(Base):
     __tablename__ = 'bot_user'
 
     bot_user_id: Mapped[int] = mapped_column(
-        primary_key=True, autoincrement=False
+        BIGINT, primary_key=True, autoincrement=False
     )
     first_name: Mapped[str]
     last_name: Mapped[str | None]

@@ -8,6 +8,7 @@ from pydantic import BaseSettings, DirectoryPath, conint
 class Settings(BaseSettings):
     # env variables
     BOT_TOKEN: str
+    DEVELOPER_CHAT_ID: str
     DB_DRIVERNAME_SYNC: str
     DB_DRIVERNAME_ASYNC: str
     POSTGRES_USER: str

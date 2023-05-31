@@ -20,4 +20,5 @@ def start_bot() -> None:
 
     application.add_handler(handlers.CONVERSATION_HANDLER)
     application.add_handler(MessageHandler(filters.ALL, handlers.wrong_command))
+    application.add_error_handler(handlers.error_handler)
     application.run_polling()

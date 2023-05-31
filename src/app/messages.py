@@ -33,3 +33,10 @@ NEXT_TIME_TRAIN = 'Следующий через {time_to_train} (мин:с)'
 LAST_TIME_TRAIN = 'Последний поезд через {time_to_train} (мин:с)'
 NONE_TRAIN = 'По расписанию поездов сегодня больше нет.'
 CONVERSATION_TIMEOUT = 'Время для выбора станций вышло.'
+ERROR = (
+    'Возникла ошибка при обработке объекта update:\n\n'
+    '<pre>update = {update}</pre>\n\n'
+    '<pre>context.chat_data = {chat_data}</pre>\n\n'
+    '<pre>context.user_data = {user_data}</pre>\n\n'
+    '<pre>{traceback_string}</pre>'
+)

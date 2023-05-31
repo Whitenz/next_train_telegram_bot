@@ -1,3 +1,7 @@
+import html
+import json
+import logging
+import traceback
 from warnings import filterwarnings
 
 from telegram import Update
@@ -14,6 +18,8 @@ from app.utils import metro_is_closed
 filterwarnings(action='ignore',
                message=r'.*CallbackQueryHandler',
                category=PTBUserWarning)
+
+logger = logging.getLogger(__name__)
 
 
 @write_log
@@ -211,6 +217,26 @@ async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) 
         messages.DIRECTION_TRAIN.format(direction=direction)
         + '\n\n'
         + messages.NONE_TRAIN
+    )
+
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик логирует ошибку и отправляет уведомление разработчику в телеграмм."""
+    logger.error("Исключение при обработке объекта update:", exc_info=context.error)
+
+    traceback_string = ''.join(
+        traceback.format_exception(None, context.error, context.error.__traceback__)
+    )
+    update_str = update.to_dict() if isinstance(update, Update) else str(update)
+    message_kwargs = {
+        'update': html.escape(json.dumps(update_str, indent=2, ensure_ascii=False)),
+        'chat_data': html.escape(str(context.chat_data)),
+        'user_data': html.escape(str(context.user_data)),
+        'traceback_string': traceback_string
+    }
+    text = messages.ERROR.format(**message_kwargs)
+    await context.bot.send_message(
+        chat_id=settings.DEVELOPER_CHAT_ID, text=text, parse_mode=ParseMode.HTML
     )
 
 

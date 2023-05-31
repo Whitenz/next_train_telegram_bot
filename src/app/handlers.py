@@ -11,13 +11,12 @@ from app.utils import metro_is_closed
 @write_log
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработка команды /start. Отправляет приветственное сообщение."""
-    bot_user = update.effective_user
-    if bot_user:
+    if (bot_user := update.effective_user) is None:
+        await wrong_command(update, context)
+    else:
         text = messages.START.format(bot_user.first_name) + '\n\n' + messages.HELP
         await db.insert_user(bot_user)
         await update.message.reply_text(text)
-    else:
-        await wrong_command(update, context)
 
 
 @write_log
@@ -37,8 +36,9 @@ async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
      полон, то также отправляет список станций.
     """
     command = update.message.text
-    bot_user = update.effective_user
-    if commands.SCHEDULE in command and await metro_is_closed():
+    if (bot_user := update.effective_user) is None:
+        await wrong_command(update, context)
+    elif commands.SCHEDULE in command and await metro_is_closed():
         await update.message.reply_text(messages.METRO_IS_CLOSED)
     elif commands.ADD_FAVORITE in command and await db.favorites_limited(bot_user):
         await update.message.reply_text(messages.FAVORITES_LIMIT_REACHED)
@@ -102,14 +102,12 @@ async def favorites(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     Обработчик команды /favorites.
     Отправляет время до ближайших поездов по избранным маршрутам пользователя.
     """
-    if await metro_is_closed():
-        await update.message.reply_text(messages.METRO_IS_CLOSED)
-        return
-
-    bot_user = update.effective_user
-    if bot_user:
-        await db.insert_user(bot_user)
-        if user_favorites := await db.select_favorites(bot_user):
+    if (bot_user := update.effective_user) is None:
+        await wrong_command(update, context)
+    else:
+        if await metro_is_closed():
+            text = messages.METRO_IS_CLOSED
+        elif user_favorites := await db.select_favorites(bot_user):
             text = '\n\n'.join(
                 [await get_text_with_time_to_train(favorite.from_station_id,
                                                    favorite.to_station_id)
@@ -118,19 +116,19 @@ async def favorites(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         else:
             text = messages.CLEAR_FAVORITES
         await update.message.reply_text(text, parse_mode=ParseMode.HTML)
-    else:
-        await wrong_command(update, context)
 
 
 @write_log
-async def clear_favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def clear_favorites(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Обработчик команды /favorites.
     Удаляет из БД все избранные маршруты пользователя.
     """
-    bot_user = update.effective_user
-    await db.delete_favorites(bot_user)
-    await update.message.reply_text(messages.CLEAR_FAVORITES)
+    if (bot_user := update.effective_user) is None:
+        await wrong_command(update, context)
+    else:
+        await db.delete_favorites(bot_user)
+        await update.message.reply_text(messages.CLEAR_FAVORITES)
 
 
 @write_log
@@ -158,6 +156,7 @@ async def _save_favorite(update: Update,
     """Функция сохраняет маршрут в БД и отправляет ответ пользователю."""
     query = update.callback_query
     bot_user = query.from_user
+    await db.insert_user(bot_user)
     new_favorite = await db.insert_favorite(bot_user, from_station_id, to_station_id)
     if new_favorite:
         text = messages.ADD_FAVORITE.format(direction=new_favorite.direction)

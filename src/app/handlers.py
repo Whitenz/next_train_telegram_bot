@@ -1,11 +1,19 @@
+from warnings import filterwarnings
+
 from telegram import Update
 from telegram.constants import ParseMode
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram.ext import (CallbackQueryHandler, CommandHandler, ContextTypes,
+                          ConversationHandler, MessageHandler, filters)
+from telegram.warnings import PTBUserWarning
 
 from app import commands, db, keyboards, messages
 from app.config import settings
 from app.decorators import write_log
 from app.utils import metro_is_closed
+
+filterwarnings(action='ignore',
+               message=r'.*CallbackQueryHandler',
+               category=PTBUserWarning)
 
 
 @write_log
@@ -204,3 +212,22 @@ async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) 
         + '\n\n'
         + messages.NONE_TRAIN
     )
+
+
+CONVERSATION_HANDLER = ConversationHandler(
+    entry_points=[
+        CommandHandler(
+            (commands.SCHEDULE, commands.ADD_FAVORITE), stations
+        )
+    ],
+    states={
+        settings.CHOICE_DIRECTION: [CallbackQueryHandler(directions)],
+        settings.FINAL_STAGE: [CallbackQueryHandler(complete_conv)],
+        ConversationHandler.TIMEOUT: [
+            MessageHandler(filters.ALL, timeout),
+            CallbackQueryHandler(timeout)
+        ]
+    },
+    fallbacks=[MessageHandler(filters.ALL, wrong_command)],
+    conversation_timeout=settings.CONVERSATION_TIMEOUT
+)

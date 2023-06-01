@@ -1,3 +1,4 @@
+import datetime as dt
 import html
 import json
 import logging
@@ -155,6 +156,13 @@ async def wrong_command(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(messages.WRONG)
 
 
+@write_log
+async def download_log(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    time = dt.datetime.now().strftime('%d%m%Y%H%M%S')
+    filename = f'bot_{time}.log'
+    await update.message.reply_document(settings.LOG_FILENAME, filename=filename)
+
+
 async def _send_time_to_train(update: Update,
                               from_station_id: int,
                               to_station_id: int) -> None:
@@ -236,7 +244,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     }
     text = messages.ERROR.format(**message_kwargs)
     await context.bot.send_message(
-        chat_id=settings.DEVELOPER_CHAT_ID, text=text, parse_mode=ParseMode.HTML
+        chat_id=settings.DEVELOPER_TG_ID, text=text, parse_mode=ParseMode.HTML
     )
 
 

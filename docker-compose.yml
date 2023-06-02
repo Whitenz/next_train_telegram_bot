@@ -5,7 +5,7 @@ services:
     container_name: next_train_db_cont
     restart: always
     volumes:
-      - next_train_vol:/var/lib/postgresql/data/
+      - db_vol:/var/lib/postgresql/data/
       - ./src/data/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${PGUSER}"]
@@ -19,7 +19,7 @@ services:
     image: whitenz/next_train:latest
     container_name: next_train_backend_cont
     volumes:
-      - next_train_vol:/data/
+      - data_vol:/src/data/
     depends_on:
       db:
         condition: service_healthy
@@ -28,5 +28,5 @@ services:
       - .env.prod
 
 volumes:
-  next_train_vol:
-    name: next_train_vol
+  db_vol:
+  data_vol:

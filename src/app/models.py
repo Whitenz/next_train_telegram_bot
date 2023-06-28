@@ -39,7 +39,7 @@ class Schedule(Base):
     departure_time: Mapped[datetime.time] = mapped_column()
 
     time_to_train: Mapped[datetime.time] = column_property(
-        column=func.cast(departure_time - func.localtime(), TIME), init=False
+        column=func.cast(departure_time - func.localtime(), TIME)
     )
     from_station_obj: Mapped['Station'] = relationship(
         init=False, lazy='joined', foreign_keys=from_station_id

@@ -1,10 +1,11 @@
 import datetime
 from typing import Sequence
 
-from sqlalchemy import URL, asc, create_engine, delete, func, select
+from sqlalchemy import URL, Engine, asc, create_engine, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession, async_sessionmaker,
+                                    create_async_engine)
+from sqlalchemy.orm import Session, sessionmaker
 
 from telegram import User
 
@@ -12,7 +13,7 @@ from app import utils
 from app.config import settings
 from app.models import BotUser, Favorite, Schedule, Station
 
-URL_DB_SYNC = URL.create(
+URL_DB_SYNC: URL = URL.create(
     drivername=settings.DB_DRIVERNAME_SYNC,
     username=settings.POSTGRES_USER,
     password=settings.POSTGRES_PASSWORD,
@@ -20,32 +21,47 @@ URL_DB_SYNC = URL.create(
     port=settings.DB_PORT,
     database=settings.DB_NAME
 )
-URL_DB_ASYNC = URL_DB_SYNC.set(drivername=settings.DB_DRIVERNAME_ASYNC)
-sync_engine = create_engine(url=URL_DB_SYNC, echo=True)
-sync_session = sessionmaker(bind=sync_engine, expire_on_commit=False)
-async_engine = create_async_engine(url=URL_DB_ASYNC, echo=True)
-async_session = async_sessionmaker(async_engine, expire_on_commit=False)
+URL_DB_ASYNC: URL = URL_DB_SYNC.set(drivername=settings.DB_DRIVERNAME_ASYNC)
+sync_engine: Engine = create_engine(url=URL_DB_SYNC, echo=True)
+sync_session: sessionmaker[Session] = sessionmaker(
+    bind=sync_engine, expire_on_commit=False
+)
+async_engine: AsyncEngine = create_async_engine(url=URL_DB_ASYNC, echo=True)
+async_session: async_sessionmaker[AsyncSession] = async_sessionmaker(
+    async_engine, expire_on_commit=False
+)
 
 
-def get_stations() -> Sequence[Station]:
-    """Функция делает запрос к БД и возвращает список с объектами Station."""
-    with sync_session() as session:
+def get_stations(
+        current_session: sessionmaker[Session] = sync_session
+) -> Sequence[Station]:
+    """Извлекает данные из таблицы 'station'.
+
+    Args:
+        current_session: Фабрика для синхронной сессии.
+
+    Returns:
+        Коллекция объектов Station.
+    """
+    with current_session() as session:
         statement = select(Station)
         return session.scalars(statement).all()
 
 
-# Словарь со всеми станциями в БД
-# Значения не меняются, поэтому подгружается 1 раз из БД при старте приложения
-STATIONS_DICT: dict[int, str] = {
-    Station.station_id: Station.station_name for Station in get_stations()
-}
+async def insert_user(
+        bot_user: User,
+        current_session: async_sessionmaker[AsyncSession] = async_session,
+) -> None:
+    """Добавляет нового пользователя бота в таблицу 'user'.
 
+    Args:
+        bot_user: Пользователь бота.
+        current_session: Фабрика для синхронной сессии.
 
-async def insert_user(bot_user: User) -> None:
+    Returns:
+        None
     """
-    Функция делает запрос к БД и добавляет нового пользователя бота в БД>.
-    """
-    async with async_session() as session:
+    async with current_session() as session:
         statement = insert(
             BotUser
         ).values(
@@ -60,13 +76,25 @@ async def insert_user(bot_user: User) -> None:
         await session.commit()
 
 
-async def select_schedule(from_station_id: int,
-                          to_station_id: int) -> Sequence[Schedule | None]:
+async def select_schedule(
+        from_station_id: int,
+        to_station_id: int,
+        current_session: async_sessionmaker[AsyncSession] = async_session,
+) -> Sequence[Schedule | None]:
+    """Извлекает данные из таблицы 'schedule'.
+
+    Функция делает запрос к БД с переданными id станций и возвращает список с объектами
+    Schedule при наличии подходящих под временной интервал.
+
+    Args:
+        from_station_id: id станции отправления поезда.
+        to_station_id: id конечной станции направления движения поездов.
+        current_session: Фабрика для асинхронной сессии.
+
+    Returns:
+        Коллекция объектов Schedule соответствующих запросу из БД или None.
     """
-    Функция делает запрос к БД с заданным id станций.
-    Возвращает список с объектами Schedule.
-    """
-    async with async_session() as session:
+    async with current_session() as session:
         statement = select(
             Schedule
         ).where(
@@ -85,14 +113,28 @@ async def select_schedule(from_station_id: int,
         return (await session.scalars(statement)).all()
 
 
-async def insert_favorite(bot_user: User,
-                          from_station_id: int,
-                          to_station_id: int) -> Favorite | None:
+async def insert_favorite(
+        bot_user: User,
+        from_station_id: int,
+        to_station_id: int,
+        current_session: async_sessionmaker[AsyncSession] = async_session
+) -> Favorite | None:
+    """Добавляет избранный маршрут в таблицу 'favorite'.
+
+    Функция делает запрос к БД и добавляет избранный маршрут пользователя в таблицу
+    'favorite'. При уникальности маршрута возвращает новую запись в виде объектов
+    Favorite. Иначе возвращает None.
+
+    Args:
+        bot_user: Пользователь бота.
+        from_station_id: id станции отправления поезда.
+        to_station_id: id конечной станции направления движения поездов.
+        current_session: Фабрика для асинхронной сессии.
+
+    Returns:
+        Объект Favorite, если добавлена новая запись в БД. Иначе возвращает None.
     """
-    Функция делает запрос к БД и добавляет избранный маршрут пользователя
-    в таблицу 'favorite'. Возвращает созданный объект Favorite.
-    """
-    async with async_session() as session:
+    async with current_session() as session:
         statement = insert(
             Favorite
         ).values(
@@ -112,12 +154,24 @@ async def insert_favorite(bot_user: User,
         return new_favorite
 
 
-async def select_favorites(bot_user: User) -> Sequence[Favorite | None]:
+async def select_favorites(
+        bot_user: User,
+        current_session: async_sessionmaker[AsyncSession] = async_session
+) -> Sequence[Favorite | None]:
+    """Извлекает избранный маршрут пользователя из таблицы 'favorite'.
+
+    Функция делает запрос к БД с переданным id пользователя бота для извлечения
+    его избранных маршрутов. Возвращает их при наличии в виде коллекции объектов
+    Favorite. Иначе возвращает None.
+
+    Args:
+        bot_user: Пользователь бота.
+        current_session: Фабрика для асинхронной сессии.
+
+    Returns:
+        Коллекция объектов Favorite соответствующих запросу из БД или None.
     """
-    Функция делает запрос к БД и получает из таблицы 'favorite' избранные
-    маршруты пользователя. Возвращает список объектов Favorite.
-    """
-    async with async_session() as session:
+    async with current_session() as session:
         statement = select(
             Favorite
         ).where(
@@ -129,12 +183,23 @@ async def select_favorites(bot_user: User) -> Sequence[Favorite | None]:
         return (await session.scalars(statement)).all()
 
 
-async def delete_favorites(bot_user: User) -> None:
+async def delete_favorites(
+        bot_user: User,
+        current_session: async_sessionmaker[AsyncSession] = async_session
+) -> None:
+    """Удаляет избранный маршрут пользователя из таблицы 'favorite'.
+
+    Функция делает запрос к БД с id пользователя и удаляет из таблицы 'favorite' все его
+    избранные маршруты.
+
+    Args:
+        bot_user: Пользователь бота.
+        current_session: Фабрика для асинхронной сессии.
+
+    Returns:
+        None
     """
-    Функция делает запрос к БД и удаляет из таблицы 'favorite' все избранные
-    маршруты пользователя.
-    """
-    async with async_session() as session:
+    async with current_session() as session:
         statement = delete(
             Favorite
         ).where(
@@ -145,13 +210,24 @@ async def delete_favorites(bot_user: User) -> None:
         await session.commit()
 
 
-async def favorites_limited(bot_user: User) -> bool:
+async def favorites_limited(
+        bot_user: User,
+        current_session: async_sessionmaker[AsyncSession] = async_session) -> bool:
+    """Проверяет лимит избранных маршрутов пользователя в таблице 'favorite'.
+
+    Функция делает запрос к БД и проверяет количество избранных маршрутов в таблице
+    'favorite' для данного пользователя. Возвращает результат проверки достигнут лимит
+    максимального количества избранных маршрутов на одного пользователя, указанного в
+    конфигурации.
+
+    Args:
+        bot_user: Пользователь бота.
+        current_session: Фабрика для асинхронной сессии.
+
+    Returns:
+        True, если достигнут лимит на избранное, иначе False.
     """
-    Функция делает запрос к БД и проверяет количество избранных маршрутов в
-     таблице 'favorite' для данного пользователя. Возвращает результат
-      сравнения с максимальным допустимым количеством избранного.
-    """
-    async with async_session() as session:
+    async with current_session() as session:
         statement = select(
             func.count()
         ).select_from(

@@ -5,6 +5,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 from app import commands, db, keyboards, messages
 from app.config import settings
 from app.decorators import write_log
+from app.stations import get_stations_dict
 from app.utils import metro_is_closed
 
 
@@ -197,8 +198,8 @@ async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) 
             )
         return text
 
-    from_station_name = db.STATIONS_DICT.get(from_station_id)
-    to_station_name = db.STATIONS_DICT.get(to_station_id)
+    from_station_name = get_stations_dict().get(from_station_id)
+    to_station_name = get_stations_dict().get(to_station_id)
     direction = f'{from_station_name} ➡ {to_station_name}'
     return (
         messages.DIRECTION_TRAIN.format(direction=direction)

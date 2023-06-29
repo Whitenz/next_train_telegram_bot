@@ -13,4 +13,4 @@ def get_stations_dict() -> dict[int, str]:
     Returns:
         dict[int, str]
     """
-    return {Station.station_id: Station.station_name for Station in get_stations()}
+    return {station.station_id: station.station_name for station in get_stations()}

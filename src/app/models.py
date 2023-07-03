@@ -64,9 +64,7 @@ class Schedule(Base):
 class BotUser(Base):
     __tablename__ = 'bot_user'
 
-    bot_user_id: Mapped[int] = mapped_column(
-        primary_key=True, autoincrement=False
-    )
+    bot_user_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     first_name: Mapped[str]
     last_name: Mapped[str | None]
     username: Mapped[str | None]

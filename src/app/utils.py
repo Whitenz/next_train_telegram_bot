@@ -26,4 +26,4 @@ async def metro_is_closed(time: dt.time = dt.datetime.now().time()) -> bool:
     Returns:
         True, если метро закрыто в настоящее время. Иначе False.
     """
-    return settings.CLOSE_TIME_METRO <= time <= settings.OPEN_TIME_METRO
+    return settings.CLOSE_TIME_METRO <= time < settings.OPEN_TIME_METRO

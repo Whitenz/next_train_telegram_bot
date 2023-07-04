@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     DB_PORT: int
     DB_NAME: str
     TZ: str
+    MODE: str
 
     # path variables
     BASE_DIR: DirectoryPath = Path(__file__).parents[1]

@@ -1,6 +1,15 @@
+import datetime as dt
+import html
+import json
+import logging
+import traceback
+from warnings import filterwarnings
+
 from telegram import Update
 from telegram.constants import ParseMode
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram.ext import (CallbackQueryHandler, CommandHandler, ContextTypes,
+                          ConversationHandler, MessageHandler, filters)
+from telegram.warnings import PTBUserWarning
 
 from app import commands, db, keyboards, messages
 from app.config import settings
@@ -8,17 +17,22 @@ from app.decorators import write_log
 from app.stations import get_stations_dict
 from app.utils import metro_is_closed
 
+filterwarnings(action='ignore',
+               message=r'.*CallbackQueryHandler',
+               category=PTBUserWarning)
+
+logger = logging.getLogger(__name__)
+
 
 @write_log
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработка команды /start. Отправляет приветственное сообщение."""
-    bot_user = update.effective_user
-    if bot_user:
+    if (bot_user := update.effective_user) is None:
+        await wrong_command(update, context)
+    else:
         text = messages.START.format(bot_user.first_name) + '\n\n' + messages.HELP
         await db.insert_user(bot_user)
         await update.message.reply_text(text)
-    else:
-        await wrong_command(update, context)
 
 
 @write_log
@@ -38,8 +52,9 @@ async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
      полон, то также отправляет список станций.
     """
     command = update.message.text
-    bot_user = update.effective_user
-    if commands.SCHEDULE in command and await metro_is_closed():
+    if (bot_user := update.effective_user) is None:
+        await wrong_command(update, context)
+    elif commands.SCHEDULE in command and await metro_is_closed():
         await update.message.reply_text(messages.METRO_IS_CLOSED)
     elif commands.ADD_FAVORITE in command and await db.favorites_limited(bot_user):
         await update.message.reply_text(messages.FAVORITES_LIMIT_REACHED)
@@ -103,14 +118,12 @@ async def favorites(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     Обработчик команды /favorites.
     Отправляет время до ближайших поездов по избранным маршрутам пользователя.
     """
-    if await metro_is_closed():
-        await update.message.reply_text(messages.METRO_IS_CLOSED)
-        return
-
-    bot_user = update.effective_user
-    if bot_user:
-        await db.insert_user(bot_user)
-        if user_favorites := await db.select_favorites(bot_user):
+    if (bot_user := update.effective_user) is None:
+        await wrong_command(update, context)
+    else:
+        if await metro_is_closed():
+            text = messages.METRO_IS_CLOSED
+        elif user_favorites := await db.select_favorites(bot_user):
             text = '\n\n'.join(
                 [await get_text_with_time_to_train(favorite.from_station_id,
                                                    favorite.to_station_id)
@@ -119,19 +132,19 @@ async def favorites(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         else:
             text = messages.CLEAR_FAVORITES
         await update.message.reply_text(text, parse_mode=ParseMode.HTML)
-    else:
-        await wrong_command(update, context)
 
 
 @write_log
-async def clear_favorites(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def clear_favorites(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Обработчик команды /favorites.
     Удаляет из БД все избранные маршруты пользователя.
     """
-    bot_user = update.effective_user
-    await db.delete_favorites(bot_user)
-    await update.message.reply_text(messages.CLEAR_FAVORITES)
+    if (bot_user := update.effective_user) is None:
+        await wrong_command(update, context)
+    else:
+        await db.delete_favorites(bot_user)
+        await update.message.reply_text(messages.CLEAR_FAVORITES)
 
 
 @write_log
@@ -142,6 +155,13 @@ async def wrong_command(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
      обрабатывать в данный момент.
     """
     await update.message.reply_text(messages.WRONG)
+
+
+@write_log
+async def download_log(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    time = dt.datetime.now().strftime('%d%m%Y%H%M%S')
+    filename = f'bot_{time}.log'
+    await update.message.reply_document(settings.LOG_FILENAME, filename=filename)
 
 
 async def _send_time_to_train(update: Update,
@@ -159,6 +179,7 @@ async def _save_favorite(update: Update,
     """Функция сохраняет маршрут в БД и отправляет ответ пользователю."""
     query = update.callback_query
     bot_user = query.from_user
+    await db.insert_user(bot_user)
     new_favorite = await db.insert_favorite(bot_user, from_station_id, to_station_id)
     if new_favorite:
         text = messages.ADD_FAVORITE.format(direction=new_favorite.direction)
@@ -206,3 +227,42 @@ async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) 
         + '\n\n'
         + messages.NONE_TRAIN
     )
+
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик логирует ошибку и отправляет уведомление разработчику в телеграмм."""
+    logger.error("Исключение при обработке объекта update:", exc_info=context.error)
+
+    traceback_string = ''.join(
+        traceback.format_exception(None, context.error, context.error.__traceback__)
+    )
+    update_str = update.to_dict() if isinstance(update, Update) else str(update)
+    message_kwargs = {
+        'update': html.escape(json.dumps(update_str, indent=2, ensure_ascii=False)),
+        'chat_data': html.escape(str(context.chat_data)),
+        'user_data': html.escape(str(context.user_data)),
+        'traceback_string': traceback_string
+    }
+    text = messages.ERROR.format(**message_kwargs)
+    await context.bot.send_message(
+        chat_id=settings.DEVELOPER_TG_ID, text=text, parse_mode=ParseMode.HTML
+    )
+
+
+CONVERSATION_HANDLER = ConversationHandler(
+    entry_points=[
+        CommandHandler(
+            (commands.SCHEDULE, commands.ADD_FAVORITE), stations
+        )
+    ],
+    states={
+        settings.CHOICE_DIRECTION: [CallbackQueryHandler(directions)],
+        settings.FINAL_STAGE: [CallbackQueryHandler(complete_conv)],
+        ConversationHandler.TIMEOUT: [
+            MessageHandler(filters.ALL, timeout),
+            CallbackQueryHandler(timeout)
+        ]
+    },
+    fallbacks=[MessageHandler(filters.ALL, wrong_command)],
+    conversation_timeout=settings.CONVERSATION_TIMEOUT
+)

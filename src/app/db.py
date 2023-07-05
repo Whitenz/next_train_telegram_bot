@@ -43,35 +43,36 @@ def get_stations(
     Returns:
         Коллекция объектов Station.
     """
+    statement = select(Station)
+
     with current_session() as session:
-        statement = select(Station)
         return session.scalars(statement).all()
 
 
 async def insert_user(
-        bot_user: User,
+        telegram_user: User,
         current_session: async_sessionmaker[AsyncSession] = async_session,
 ) -> None:
-    """Добавляет нового пользователя бота в таблицу 'user'.
+    """Добавляет нового пользователя бота в таблицу 'bot_user'.
 
     Args:
-        bot_user: Пользователь бота.
+        telegram_user: Пользователь бота.
         current_session: Фабрика для синхронной сессии.
 
     Returns:
         None
     """
-    async with current_session() as session:
-        statement = insert(
-            BotUser
-        ).values(
-            bot_user_id=bot_user.id,
-            first_name=bot_user.first_name,
-            last_name=bot_user.last_name,
-            username=bot_user.username,
-            is_bot=bot_user.is_bot
-        ).on_conflict_do_nothing()
+    statement = insert(
+        BotUser
+    ).values(
+        bot_user_id=telegram_user.id,
+        first_name=telegram_user.first_name,
+        last_name=telegram_user.last_name,
+        username=telegram_user.username,
+        is_bot=telegram_user.is_bot
+    ).on_conflict_do_nothing()
 
+    async with current_session() as session:
         await session.execute(statement)
         await session.commit()
 
@@ -94,27 +95,27 @@ async def select_schedule(
     Returns:
         Коллекция объектов Schedule соответствующих запросу из БД или None.
     """
-    async with current_session() as session:
-        statement = select(
-            Schedule
-        ).where(
-            Schedule.from_station_id == from_station_id,
-            Schedule.to_station_id == to_station_id,
-            Schedule.is_weekend.is_(await utils.is_weekend()),
-            Schedule.time_to_train < datetime.timedelta(
-                minutes=settings.MAX_WAITING_TIME
-            )
-        ).order_by(
-            asc(Schedule.time_to_train)
-        ).limit(
-            settings.LIMIT_ROW
+    statement = select(
+        Schedule
+    ).where(
+        Schedule.from_station_id == from_station_id,
+        Schedule.to_station_id == to_station_id,
+        Schedule.is_weekend.is_(await utils.is_weekend()),
+        Schedule.time_to_train < datetime.timedelta(
+            minutes=settings.MAX_WAITING_TIME
         )
+    ).order_by(
+        asc(Schedule.time_to_train)
+    ).limit(
+        settings.LIMIT_ROW
+    )
 
+    async with current_session() as session:
         return (await session.scalars(statement)).all()
 
 
 async def insert_favorite(
-        bot_user: User,
+        telegram_user: User,
         from_station_id: int,
         to_station_id: int,
         current_session: async_sessionmaker[AsyncSession] = async_session
@@ -126,7 +127,7 @@ async def insert_favorite(
     Favorite. Иначе возвращает None.
 
     Args:
-        bot_user: Пользователь бота.
+        telegram_user: Пользователь бота.
         from_station_id: id станции отправления поезда.
         to_station_id: id конечной станции направления движения поездов.
         current_session: Фабрика для асинхронной сессии.
@@ -134,19 +135,19 @@ async def insert_favorite(
     Returns:
         Объект Favorite, если добавлена новая запись в БД. Иначе возвращает None.
     """
-    async with current_session() as session:
-        statement = insert(
-            Favorite
-        ).values(
-            bot_user_id=bot_user.id,
-            from_station_id=from_station_id,
-            to_station_id=to_station_id
-        ).on_conflict_do_nothing(
-            constraint='favorite_unique'
-        ).returning(
-            Favorite
-        )
+    statement = insert(
+        Favorite
+    ).values(
+        bot_user_id=telegram_user.id,
+        from_station_id=from_station_id,
+        to_station_id=to_station_id
+    ).on_conflict_do_nothing(
+        constraint='favorite_unique'
+    ).returning(
+        Favorite
+    )
 
+    async with current_session() as session:
         new_favorite = await session.scalar(statement)
         await session.commit()
         if new_favorite:
@@ -155,7 +156,7 @@ async def insert_favorite(
 
 
 async def select_favorites(
-        bot_user: User,
+        telegram_user: User,
         current_session: async_sessionmaker[AsyncSession] = async_session
 ) -> Sequence[Favorite | None]:
     """Извлекает избранный маршрут пользователя из таблицы 'favorite'.
@@ -165,26 +166,26 @@ async def select_favorites(
     Favorite. Иначе возвращает None.
 
     Args:
-        bot_user: Пользователь бота.
+        telegram_user: Пользователь бота.
         current_session: Фабрика для асинхронной сессии.
 
     Returns:
         Коллекция объектов Favorite соответствующих запросу из БД или None.
     """
-    async with current_session() as session:
-        statement = select(
-            Favorite
-        ).where(
-            Favorite.bot_user_id == bot_user.id
-        ).order_by(
-            Favorite.favorite_id
-        )
+    statement = select(
+        Favorite
+    ).where(
+        Favorite.bot_user_id == telegram_user.id
+    ).order_by(
+        Favorite.favorite_id
+    )
 
+    async with current_session() as session:
         return (await session.scalars(statement)).all()
 
 
 async def delete_favorites(
-        bot_user: User,
+        telegram_user: User,
         current_session: async_sessionmaker[AsyncSession] = async_session
 ) -> None:
     """Удаляет избранный маршрут пользователя из таблицы 'favorite'.
@@ -193,25 +194,25 @@ async def delete_favorites(
     избранные маршруты.
 
     Args:
-        bot_user: Пользователь бота.
+        telegram_user: Пользователь бота.
         current_session: Фабрика для асинхронной сессии.
 
     Returns:
         None
     """
-    async with current_session() as session:
-        statement = delete(
-            Favorite
-        ).where(
-            Favorite.bot_user_id == bot_user.id
-        )
+    statement = delete(
+        Favorite
+    ).where(
+        Favorite.bot_user_id == telegram_user.id
+    )
 
+    async with current_session() as session:
         await session.execute(statement)
         await session.commit()
 
 
 async def favorites_limited(
-        bot_user: User,
+        telegram_user: User,
         current_session: async_sessionmaker[AsyncSession] = async_session) -> bool:
     """Проверяет лимит избранных маршрутов пользователя в таблице 'favorite'.
 
@@ -221,20 +222,20 @@ async def favorites_limited(
     конфигурации.
 
     Args:
-        bot_user: Пользователь бота.
+        telegram_user: Пользователь бота.
         current_session: Фабрика для асинхронной сессии.
 
     Returns:
         True, если достигнут лимит на избранное, иначе False.
     """
-    async with current_session() as session:
-        statement = select(
-            func.count()
-        ).select_from(
-            Favorite
-        ).where(
-            Favorite.bot_user_id == bot_user.id
-        )
+    statement = select(
+        func.count()
+    ).select_from(
+        Favorite
+    ).where(
+        Favorite.bot_user_id == telegram_user.id
+    )
 
+    async with current_session() as session:
         count = await session.scalar(statement)
         return count >= settings.LIMIT_FAVORITES

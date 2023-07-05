@@ -17,13 +17,15 @@ def write_log(func: Callable) -> Callable:
     """
     @wraps(func)
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        bot_user = update.effective_user
         if update.callback_query:
             command = update.callback_query.data
         else:
             command = update.message.text
-        logger_kwargs = {'id': update.effective_user.id,
-                         'first_name': update.effective_user.first_name,
-                         'command': command}
+        logger_kwargs = {
+            'id': bot_user.id if bot_user else None,
+            'first_name': bot_user.first_name if bot_user else None,
+            'command': command}
         logger.info(settings.LOGGER_TEXT.format(**logger_kwargs))
         return await func(update, context)
     return wrapper

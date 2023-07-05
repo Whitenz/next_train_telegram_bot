@@ -8,6 +8,7 @@ from pydantic import BaseSettings, DirectoryPath, conint
 class Settings(BaseSettings):
     # env variables
     BOT_TOKEN: str
+    DEVELOPER_TG_ID: int
     DB_DRIVERNAME_SYNC: str
     DB_DRIVERNAME_ASYNC: str
     POSTGRES_USER: str
@@ -16,6 +17,7 @@ class Settings(BaseSettings):
     DB_PORT: int
     DB_NAME: str
     TZ: str
+    MODE: str
 
     # path variables
     BASE_DIR: DirectoryPath = Path(__file__).parents[1]

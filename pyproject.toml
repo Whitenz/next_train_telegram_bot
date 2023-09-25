@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "next-train-telegram-bot"
+version = "0.1.0"
+description = "TelegramBot for inform you about next train in metro Yekaterinburg"
+authors = ["Ilya Kolesnikov <zloy-gamer@yandex.ru>"]
+readme = "README.md"
+packages = [{include = "next_train_telegram_bot"}]
+
+[tool.poetry.dependencies]
+python = "~3.11"
+python-telegram-bot = {version = "^20.5", extras = ["job-queue"]}
+pydantic = {version = "^2.0", extras = ["dotenv"]}
+sqlalchemy = "^2.0.21"
+asyncpg = "^0.28.0"
+psycopg2-binary = "^2.9.6"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

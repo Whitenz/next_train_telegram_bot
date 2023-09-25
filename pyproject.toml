@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "TelegramBot for inform you about next train in metro Yekaterinburg"
 authors = ["Ilya Kolesnikov <zloy-gamer@yandex.ru>"]
 readme = "README.md"
-packages = [{include = "next_train_telegram_bot"}]
 
 [tool.poetry.dependencies]
 python = "~3.11"
@@ -13,9 +12,12 @@ pydantic = {version = "^2.0", extras = ["dotenv"]}
 sqlalchemy = "^2.0.21"
 asyncpg = "^0.28.0"
 psycopg2-binary = "^2.9.6"
+pydantic-settings = "^2.0.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"
+pytest-asyncio = "^0.21.1"
+pytest-dotenv = "^0.5.2"
 
 [build-system]
 requires = ["poetry-core"]

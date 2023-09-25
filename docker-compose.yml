@@ -7,6 +7,7 @@ services:
     volumes:
       - db_vol:/var/lib/postgresql/data/
       - ./src/data/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - ./src/data/populate_db.sql:/docker-entrypoint-initdb.d/populate_db.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${PGUSER}"]
       interval: 10s

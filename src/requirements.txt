@@ -1,5 +1,0 @@
-python-telegram-bot[job-queue]==20.3
-pydantic[dotenv]==1.10.7
-SQLAlchemy==2.0.13
-asyncpg==0.27.0
-psycopg2-binary==2.9.6

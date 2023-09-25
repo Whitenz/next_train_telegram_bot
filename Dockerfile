@@ -4,8 +4,10 @@ ENV TZ="Asia/Yekaterinburg"
 
 WORKDIR /src
 
-COPY src .
+COPY src pyproject.toml poetry.lock ./
 
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install poetry
+RUN poetry config virtualenvs.create false
+RUN poetry install
 
 CMD ["python3", "main.py"]

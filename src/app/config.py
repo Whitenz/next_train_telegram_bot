@@ -2,7 +2,8 @@ import datetime
 import logging
 from pathlib import Path, PurePath
 
-from pydantic import BaseSettings, DirectoryPath, conint
+from pydantic import DirectoryPath, conint
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -36,12 +37,14 @@ class Settings(BaseSettings):
     LIMIT_ROW: conint(ge=1) = 2
     LIMIT_FAVORITES: conint(ge=1) = 2
 
-    class Config:
-        env_file: PurePath = (
+    model_config = SettingsConfigDict(
+        env_file=(
             PurePath.joinpath(Path(__file__).parents[2], '.env.prod'),
-            PurePath.joinpath(Path(__file__).parents[2], '.env.dev')
-        )
-        env_file_encoding: str = 'utf-8'
+            PurePath.joinpath(Path(__file__).parents[2], '.env.dev'),
+        ),
+        env_file_encoding='utf-8',
+        extra="ignore",
+    )
 
 
 settings = Settings()

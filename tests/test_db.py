@@ -7,8 +7,7 @@ from tests.fixtures.bot_users import get_bot_users
 @pytest.mark.usefixtures('schedules')
 class TestSchedule:
     def test_count_schedule(self, schedules):
-        assert len(
-            schedules) == 4572, 'В таблице с расписанием должно быть 4572 записи.'
+        assert len(schedules) == 4572, 'В таблице с расписанием должно быть 4572 записи.'
 
     def test_schedule_type(self, schedules):
         assert all(type(schedule) == models.Schedule for schedule in schedules), (

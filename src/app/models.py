@@ -1,20 +1,30 @@
 import datetime
 
-from sqlalchemy import (BIGINT, TIME, CheckConstraint, ForeignKey, String,
-                        UniqueConstraint, func)
-from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass, column_property,
-                            mapped_column, relationship)
+from sqlalchemy import (
+    TIME,
+    CheckConstraint,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    func,
+)
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    MappedAsDataclass,
+    column_property,
+    mapped_column,
+    relationship,
+)
 from typing_extensions import Annotated
 
 TIMESTAMP_TYPE = Annotated[
     datetime.datetime,
-    mapped_column(nullable=False, server_default=func.now())
+    mapped_column(nullable=False, server_default=func.now()),
 ]
 STATION_FK = Annotated[
     int,
-    mapped_column(ForeignKey('station.station_id',
-                             onupdate='CASCADE',
-                             ondelete='CASCADE'))
+    mapped_column(ForeignKey('station.station_id', onupdate='CASCADE', ondelete='CASCADE')),
 ]
 
 
@@ -40,26 +50,27 @@ class Schedule(Base):
     departure_time: Mapped[datetime.time] = mapped_column()
 
     time_to_train: Mapped[datetime.time] = column_property(
-        column=func.cast(departure_time - func.localtime(), TIME)
+        column=func.cast(departure_time - func.localtime(), TIME),
     )
     from_station_obj: Mapped['Station'] = relationship(
-        init=False, lazy='joined', foreign_keys=from_station_id
+        init=False,
+        lazy='joined',
+        foreign_keys=from_station_id,
     )
     to_station_obj: Mapped['Station'] = relationship(
-        init=False, lazy='joined', foreign_keys=to_station_id
+        init=False,
+        lazy='joined',
+        foreign_keys=to_station_id,
     )
 
     __table_args__ = (
         CheckConstraint(from_station_id != to_station_id, name='route_check'),
-        UniqueConstraint(from_station_id, to_station_id, is_weekend,
-                         departure_time, name='schedule_unique')
+        UniqueConstraint(from_station_id, to_station_id, is_weekend, departure_time, name='schedule_unique'),
     )
 
     @property
     def direction(self):
-        return (
-            f'{self.from_station_obj.station_name} ➡ {self.to_station_obj.station_name}'
-        )
+        return f'{self.from_station_obj.station_name} ➡ {self.to_station_obj.station_name}'
 
 
 class BotUser(Base):
@@ -93,12 +104,9 @@ class Favorite(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint(bot_user_id, from_station_id, to_station_id,
-                         name='favorite_unique'),
+        UniqueConstraint(bot_user_id, from_station_id, to_station_id, name='favorite_unique'),
     )
 
     @property
     def direction(self):
-        return (
-            f'{self.from_station_obj.station_name} ➡ {self.to_station_obj.station_name}'
-        )
+        return f'{self.from_station_obj.station_name} ➡ {self.to_station_obj.station_name}'

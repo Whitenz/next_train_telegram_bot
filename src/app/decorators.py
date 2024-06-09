@@ -25,7 +25,8 @@ def write_log(func: Callable) -> Callable:
         logger_kwargs = {
             'id': bot_user.id if bot_user else None,
             'first_name': bot_user.first_name if bot_user else None,
-            'command': command}
+            'command': command,
+        }
         logger.info(settings.LOGGER_TEXT.format(**logger_kwargs))
         return await func(update, context)
     return wrapper

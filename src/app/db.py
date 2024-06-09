@@ -1,17 +1,37 @@
 import datetime
 from typing import Sequence
 
-from sqlalchemy import URL, Engine, asc, create_engine, delete, func, select
+from sqlalchemy import (
+    URL,
+    Engine,
+    asc,
+    create_engine,
+    delete,
+    func,
+    select,
+)
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession, async_sessionmaker,
-                                    create_async_engine)
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.orm import (
+    Session,
+    sessionmaker,
+)
 
 from telegram import User
 
 from app import utils
 from app.config import settings
-from app.models import BotUser, Favorite, Schedule, Station
+from app.models import (
+    BotUser,
+    Favorite,
+    Schedule,
+    Station,
+)
 
 URL_DB_SYNC: URL = URL.create(
     drivername=settings.DB_DRIVERNAME_SYNC,
@@ -19,17 +39,13 @@ URL_DB_SYNC: URL = URL.create(
     password=settings.POSTGRES_PASSWORD,
     host=settings.DB_HOST,
     port=settings.DB_PORT,
-    database=settings.DB_NAME
+    database=settings.DB_NAME,
 )
 URL_DB_ASYNC: URL = URL_DB_SYNC.set(drivername=settings.DB_DRIVERNAME_ASYNC)
 sync_engine: Engine = create_engine(url=URL_DB_SYNC, echo=True)
-sync_session: sessionmaker[Session] = sessionmaker(
-    bind=sync_engine, expire_on_commit=False
-)
+sync_session: sessionmaker[Session] = sessionmaker(bind=sync_engine, expire_on_commit=False)
 async_engine: AsyncEngine = create_async_engine(url=URL_DB_ASYNC, echo=True)
-async_session: async_sessionmaker[AsyncSession] = async_sessionmaker(
-    async_engine, expire_on_commit=False
-)
+async_session: async_sessionmaker[AsyncSession] = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
 def get_stations(
@@ -69,7 +85,7 @@ async def insert_user(
         first_name=telegram_user.first_name,
         last_name=telegram_user.last_name,
         username=telegram_user.username,
-        is_bot=telegram_user.is_bot
+        is_bot=telegram_user.is_bot,
     ).on_conflict_do_nothing()
 
     async with current_session() as session:
@@ -101,9 +117,7 @@ async def select_schedule(
         Schedule.from_station_id == from_station_id,
         Schedule.to_station_id == to_station_id,
         Schedule.is_weekend.is_(await utils.is_weekend()),
-        Schedule.time_to_train < datetime.timedelta(
-            minutes=settings.MAX_WAITING_TIME
-        )
+        Schedule.time_to_train < datetime.timedelta(minutes=settings.MAX_WAITING_TIME),
     ).order_by(
         asc(Schedule.time_to_train)
     ).limit(
@@ -118,7 +132,7 @@ async def insert_favorite(
         telegram_user: User,
         from_station_id: int,
         to_station_id: int,
-        current_session: async_sessionmaker[AsyncSession] = async_session
+        current_session: async_sessionmaker[AsyncSession] = async_session,
 ) -> Favorite | None:
     """Добавляет избранный маршрут в таблицу 'favorite'.
 
@@ -140,7 +154,7 @@ async def insert_favorite(
     ).values(
         bot_user_id=telegram_user.id,
         from_station_id=from_station_id,
-        to_station_id=to_station_id
+        to_station_id=to_station_id,
     ).on_conflict_do_nothing(
         constraint='favorite_unique'
     ).returning(
@@ -157,7 +171,7 @@ async def insert_favorite(
 
 async def select_favorites(
         telegram_user: User,
-        current_session: async_sessionmaker[AsyncSession] = async_session
+        current_session: async_sessionmaker[AsyncSession] = async_session,
 ) -> Sequence[Favorite | None]:
     """Извлекает избранный маршрут пользователя из таблицы 'favorite'.
 
@@ -175,7 +189,7 @@ async def select_favorites(
     statement = select(
         Favorite
     ).where(
-        Favorite.bot_user_id == telegram_user.id
+        Favorite.bot_user_id == telegram_user.id,
     ).order_by(
         Favorite.favorite_id
     )
@@ -186,7 +200,7 @@ async def select_favorites(
 
 async def delete_favorites(
         telegram_user: User,
-        current_session: async_sessionmaker[AsyncSession] = async_session
+        current_session: async_sessionmaker[AsyncSession] = async_session,
 ) -> None:
     """Удаляет избранный маршрут пользователя из таблицы 'favorite'.
 
@@ -203,7 +217,7 @@ async def delete_favorites(
     statement = delete(
         Favorite
     ).where(
-        Favorite.bot_user_id == telegram_user.id
+        Favorite.bot_user_id == telegram_user.id,
     )
 
     async with current_session() as session:
@@ -213,7 +227,8 @@ async def delete_favorites(
 
 async def favorites_limited(
         telegram_user: User,
-        current_session: async_sessionmaker[AsyncSession] = async_session) -> bool:
+        current_session: async_sessionmaker[AsyncSession] = async_session,
+) -> bool:
     """Проверяет лимит избранных маршрутов пользователя в таблице 'favorite'.
 
     Функция делает запрос к БД и проверяет количество избранных маршрутов в таблице
@@ -233,7 +248,7 @@ async def favorites_limited(
     ).select_from(
         Favorite
     ).where(
-        Favorite.bot_user_id == telegram_user.id
+        Favorite.bot_user_id == telegram_user.id,
     )
 
     async with current_session() as session:

@@ -1,9 +1,18 @@
 import datetime
 import logging
-from pathlib import Path, PurePath
+from pathlib import (
+    Path,
+    PurePath,
+)
 
-from pydantic import DirectoryPath, conint
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import (
+    DirectoryPath,
+    conint,
+)
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+)
 
 
 class Settings(BaseSettings):
@@ -39,8 +48,8 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_file=(
-            PurePath.joinpath(Path(__file__).parents[2], '.env.prod'),
-            PurePath.joinpath(Path(__file__).parents[2], '.env.dev'),
+            Path.joinpath(Path(__file__).parents[2], '.env.prod'),
+            Path.joinpath(Path(__file__).parents[2], '.env.dev'),
         ),
         env_file_encoding='utf-8',
         extra="ignore",
@@ -54,6 +63,6 @@ logging.basicConfig(
     format='[%(asctime)s] - [%(name)s] - [%(levelname)s] => %(message)s',
     datefmt='%d.%m.%Y %H:%M:%S',
     level=logging.INFO,
-    encoding='utf-8'
+    encoding='utf-8',
 )
 logging.getLogger('httpx').setLevel(logging.WARNING)

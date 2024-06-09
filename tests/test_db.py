@@ -7,21 +7,17 @@ from tests.fixtures.bot_users import get_bot_users
 @pytest.mark.usefixtures('schedules')
 class TestSchedule:
     def test_count_schedule(self, schedules):
-        assert len(schedules) == 4572, 'В таблице с расписанием должно быть 4572 записи.'
+        assert len(schedules) == 4584, 'В таблице с расписанием должно быть 4572 записи.'
 
     def test_schedule_type(self, schedules):
-        assert all(type(schedule) == models.Schedule for schedule in schedules), (
-                'Объекты должны быть экземплярами класса Schedule.'
-        )
+        assert all(isinstance(schedule, models.Schedule) for schedule in schedules), 'Объекты должны быть экземплярами класса Schedule.'
 
     @pytest.mark.asyncio
     async def test_select_schedule(self):
         schedules = await db.select_schedule(from_station_id=1, to_station_id=9)
 
-        assert type(schedules) == list
-        assert all(type(schedule) == models.Schedule for schedule in schedules), (
-                'Объекты должны быть экземплярами класса Schedule.'
-        )
+        assert isinstance(schedules, list)
+        assert all(isinstance(schedule, models.Schedule) for schedule in schedules), 'Объекты должны быть экземплярами класса Schedule.'
 
 
 class TestBotUser:

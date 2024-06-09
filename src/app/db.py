@@ -1,5 +1,5 @@
 import datetime
-from typing import Sequence
+import typing as t
 
 from sqlalchemy import (
     URL,
@@ -50,7 +50,7 @@ async_session: async_sessionmaker[AsyncSession] = async_sessionmaker(async_engin
 
 def get_stations(
         current_session: sessionmaker[Session] = sync_session
-) -> Sequence[Station]:
+) -> t.Sequence[Station]:
     """Извлекает данные из таблицы 'station'.
 
     Args:
@@ -97,7 +97,7 @@ async def select_schedule(
         from_station_id: int,
         to_station_id: int,
         current_session: async_sessionmaker[AsyncSession] = async_session,
-) -> Sequence[Schedule | None]:
+) -> t.Sequence[Schedule | None]:
     """Извлекает данные из таблицы 'schedule'.
 
     Функция делает запрос к БД с переданными id станций и возвращает список с объектами
@@ -172,7 +172,7 @@ async def insert_favorite(
 async def select_favorites(
         telegram_user: User,
         current_session: async_sessionmaker[AsyncSession] = async_session,
-) -> Sequence[Favorite | None]:
+) -> t.Sequence[Favorite | None]:
     """Извлекает избранный маршрут пользователя из таблицы 'favorite'.
 
     Функция делает запрос к БД с переданным id пользователя бота для извлечения

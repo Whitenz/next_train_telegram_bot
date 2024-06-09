@@ -1,10 +1,10 @@
 """Модуль содержит текстовые сообщения, которые использует бот."""
 
-START = (
+START: str = (
     'Привет {}!\n'
     'Бот знает расписание движения поездов в метро Екатеринбурга.'
 )
-HELP = (
+HELP: str = (
     'Команда /schedule показывает время до ближайших поездов. Для этого нужно'
     ' выбрать свою станцию, а затем направление движения поезда.\n\n'
     'Команда /favorites показывает время до ближайших поездов на избранных'
@@ -13,27 +13,27 @@ HELP = (
     ' список избранных маршрутов и очищает его соответственно. Добавить можно'
     ' не более двух маршрутов.'
 )
-METRO_IS_CLOSED = (
+METRO_IS_CLOSED: str = (
     'Метрополитен закрыт. Часы работы с 06:00 до 00:00.\n'
     'Расписание будет доступно с 05:30.'
 )
-ADD_FAVORITE = 'Маршрут <b>{direction}</b> добавлен в избранное.'
-FAVORITE_EXISTS = 'Маршрут уже есть в избранном.'
-CLEAR_FAVORITES = (
+ADD_FAVORITE: str = 'Маршрут <b>{direction}</b> добавлен в избранное.'
+FAVORITE_EXISTS: str = 'Маршрут уже есть в избранном.'
+CLEAR_FAVORITES: str = (
     'Список избранных маршрутов очищен.\n'
     'Чтобы добавить маршрут в избранное воспользуйтесь командой /add_favorite'
 )
-FAVORITES_LIMIT_REACHED = 'У вас уже добавлено 2 маршрута в избранное и это максимум.'
-WRONG = 'Некорректная команда.'
-CHOICE_STATION = 'Выберите станцию отправления:'
-CHOICE_DIRECTION = 'Выберите конечную станцию направления:'
-DIRECTION_TRAIN = '<b>{direction}:</b>'
-CLOSEST_TIME_TRAIN = 'Ближайший поезд через {time_to_train} (мин:с)'
-NEXT_TIME_TRAIN = 'Следующий через {time_to_train} (мин:с)'
-LAST_TIME_TRAIN = 'Последний поезд через {time_to_train} (мин:с)'
-NONE_TRAIN = 'По расписанию поездов сегодня больше нет.'
-CONVERSATION_TIMEOUT = 'Время для выбора станций вышло.'
-ERROR = (
+FAVORITES_LIMIT_REACHED: str = 'У вас уже добавлено 2 маршрута в избранное и это максимум.'
+WRONG: str = 'Некорректная команда.'
+CHOICE_STATION: str = 'Выберите станцию отправления:'
+CHOICE_DIRECTION: str = 'Выберите конечную станцию направления:'
+DIRECTION_TRAIN: str = '<b>{direction}:</b>'
+CLOSEST_TIME_TRAIN: str = 'Ближайший поезд через {time_to_train} (мин:с)'
+NEXT_TIME_TRAIN: str = 'Следующий через {time_to_train} (мин:с)'
+LAST_TIME_TRAIN: str = 'Последний поезд через {time_to_train} (мин:с)'
+NONE_TRAIN: str = 'По расписанию поездов сегодня больше нет.'
+CONVERSATION_TIMEOUT: str = 'Время для выбора станций вышло.'
+ERROR: str = (
     'Возникла ошибка при обработке объекта update:\n\n'
     '<pre>update = {update}</pre>\n\n'
     '<pre>context.chat_data = {chat_data}</pre>\n\n'

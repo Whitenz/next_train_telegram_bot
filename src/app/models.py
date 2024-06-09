@@ -69,7 +69,7 @@ class Schedule(Base):
     )
 
     @property
-    def direction(self):
+    def direction(self) -> str:
         return f'{self.from_station_obj.station_name} ➡ {self.to_station_obj.station_name}'
 
 
@@ -108,5 +108,5 @@ class Favorite(Base):
     )
 
     @property
-    def direction(self):
+    def direction(self) -> str:
         return f'{self.from_station_obj.station_name} ➡ {self.to_station_obj.station_name}'

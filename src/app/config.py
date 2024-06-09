@@ -5,17 +5,11 @@ from pathlib import (
     PurePath,
 )
 
-from pydantic import (
-    DirectoryPath,
-    conint,
-)
-from pydantic_settings import (
-    BaseSettings,
-    SettingsConfigDict,
-)
+import pydantic as p
+import pydantic_settings as ps
 
 
-class Settings(BaseSettings):
+class Settings(ps.BaseSettings):
     # env variables
     BOT_TOKEN: str
     DEVELOPER_TG_ID: int
@@ -30,7 +24,7 @@ class Settings(BaseSettings):
     MODE: str
 
     # path variables
-    BASE_DIR: DirectoryPath = Path(__file__).parents[1]
+    BASE_DIR: p.DirectoryPath = Path(__file__).parents[1]
 
     # logger params
     LOG_FILENAME: PurePath = PurePath.joinpath(BASE_DIR, 'data', 'bot.log')
@@ -39,14 +33,14 @@ class Settings(BaseSettings):
     # bot params
     OPEN_TIME_METRO: datetime.time = datetime.time(hour=5, minute=30)
     CLOSE_TIME_METRO: datetime.time = datetime.time(hour=0, minute=30)
-    CHOICE_DIRECTION: conint(ge=0) = 0
-    FINAL_STAGE: conint(ge=0) = 1
-    CONVERSATION_TIMEOUT: conint(ge=60, le=3600) = 60 * 3
-    MAX_WAITING_TIME: conint(ge=15, le=60) = 60  # minutes
-    LIMIT_ROW: conint(ge=1) = 2
-    LIMIT_FAVORITES: conint(ge=1) = 2
+    CHOICE_DIRECTION: int = p.Field(default=0, ge=0)
+    FINAL_STAGE: int = p.Field(default=1, ge=0)
+    CONVERSATION_TIMEOUT: int = p.Field(default=60 * 3, ge=60, le=3600)
+    MAX_WAITING_TIME: int = p.Field(default=60, ge=15, le=60)
+    LIMIT_ROW: int = p.Field(default=2, ge=1)
+    LIMIT_FAVORITES: int = p.Field(default=2, ge=1)
 
-    model_config = SettingsConfigDict(
+    model_config = ps.SettingsConfigDict(
         env_file=(
             Path.joinpath(Path(__file__).parents[2], '.env.prod'),
             Path.joinpath(Path(__file__).parents[2], '.env.dev'),

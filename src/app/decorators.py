@@ -29,7 +29,7 @@ def write_log(func: F) -> F:
             command = "undefined"
         logger_kwargs = {
             'id': bot_user.id if bot_user else None,
-            'first_name': bot_user.first_name if bot_user else None,
+            'first_name': bot_user.username or bot_user.first_name if bot_user else None,
             'command': command,
         }
         logger.info(settings.LOGGER_TEXT.format(**logger_kwargs))

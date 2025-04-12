@@ -27,7 +27,7 @@ class Settings(ps.BaseSettings):
     BASE_DIR: p.DirectoryPath = Path(__file__).parents[1]
 
     # logger params
-    LOG_FILENAME: PurePath = PurePath.joinpath(BASE_DIR, 'data', 'bot.log')
+    LOG_FILENAME: PurePath = PurePath.joinpath(BASE_DIR, "data", "bot.log")
     LOGGER_TEXT: str = 'Пользователь {first_name} ({id}) отправил команду "{command}"'
 
     # bot params
@@ -42,10 +42,10 @@ class Settings(ps.BaseSettings):
 
     model_config = ps.SettingsConfigDict(
         env_file=(
-            Path.joinpath(Path(__file__).parents[2], '.env.prod'),
-            Path.joinpath(Path(__file__).parents[2], '.env.dev'),
+            Path.joinpath(Path(__file__).parents[1], ".env.prod"),
+            Path.joinpath(Path(__file__).parents[1], ".env.dev"),
         ),
-        env_file_encoding='utf-8',
+        env_file_encoding="utf-8",
         extra="ignore",
     )
 
@@ -54,9 +54,9 @@ settings = Settings()
 
 logging.basicConfig(
     filename=settings.LOG_FILENAME,
-    format='[%(asctime)s] - [%(name)s] - [%(levelname)s] => %(message)s',
-    datefmt='%d.%m.%Y %H:%M:%S',
+    format="[%(asctime)s] - [%(name)s] - [%(levelname)s] => %(message)s",
+    datefmt="%d.%m.%Y %H:%M:%S",
     level=logging.INFO,
-    encoding='utf-8',
+    encoding="utf-8",
 )
-logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)

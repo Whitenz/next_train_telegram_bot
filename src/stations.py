@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from app.db import get_stations
+from .db import get_stations
 
 
 @lru_cache

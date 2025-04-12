@@ -17,20 +17,20 @@ from telegram.ext import (
 )
 from telegram.warnings import PTBUserWarning
 
-from app import (
-    commands,
+from . import (
+    bot_commands,
     db,
     keyboards,
     messages,
 )
-from app.config import settings
-from app.decorators import write_log
-from app.stations import get_stations_dict
-from app.utils import metro_is_closed
+from .config import settings
+from .decorators import write_log
+from .stations import get_stations_dict
+from .utils import metro_is_closed
 
 filterwarnings(
-    action='ignore',
-    message=r'.*CallbackQueryHandler',
+    action="ignore",
+    message=r".*CallbackQueryHandler",
     category=PTBUserWarning,
 )
 
@@ -44,7 +44,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await wrong_command(update, context)
         return
 
-    text = messages.START.format(update.effective_user.first_name) + '\n\n' + messages.HELP
+    text = messages.START.format(update.effective_user.first_name) + "\n\n" + messages.HELP
     await db.insert_user(update.effective_user)
     await update.message.reply_text(text)
 
@@ -71,9 +71,9 @@ async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return ConversationHandler.END
 
     command = update.message.text or ""
-    if commands.SCHEDULE in command and await metro_is_closed():
+    if bot_commands.SCHEDULE in command and await metro_is_closed():
         await update.message.reply_text(messages.METRO_IS_CLOSED)
-    elif commands.ADD_FAVORITE in command and await db.favorites_limited(update.effective_user):
+    elif bot_commands.ADD_FAVORITE in command and await db.favorites_limited(update.effective_user):
         await update.message.reply_text(messages.FAVORITES_LIMIT_REACHED)
     else:
         bot_message = await update.message.reply_text(
@@ -101,14 +101,14 @@ async def directions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     command = context.chat_data.get("command", "undefined")
 
     if to_station_id := keyboards.END_STATION_DIRECTION.get(from_station_id):
-        if commands.SCHEDULE in command:
+        if bot_commands.SCHEDULE in command:
             await _send_time_to_train(update, from_station_id, to_station_id)
-        if commands.ADD_FAVORITE in command:
+        if bot_commands.ADD_FAVORITE in command:
             await _save_favorite(update, from_station_id, to_station_id)
         context.chat_data.clear()
         return ConversationHandler.END
 
-    context.chat_data['from_station_id'] = from_station_id
+    context.chat_data["from_station_id"] = from_station_id
     await query.edit_message_text(
         text=messages.CHOICE_DIRECTION,
         reply_markup=keyboards.DIRECTION_REPLY_MARKUP,
@@ -131,9 +131,9 @@ async def complete_conv(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     command = context.chat_data.get("command", "undefined")
     from_station_id = context.chat_data.get("from_station_id", -1)
     to_station_id = int(query.data or "-1")
-    if commands.SCHEDULE in command:
+    if bot_commands.SCHEDULE in command:
         await _send_time_to_train(update, from_station_id, to_station_id)
-    if commands.ADD_FAVORITE in command:
+    if bot_commands.ADD_FAVORITE in command:
         await _save_favorite(update, from_station_id, to_station_id)
     context.chat_data.clear()
     return ConversationHandler.END
@@ -156,7 +156,7 @@ async def favorites(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await get_text_with_time_to_train(favorite.from_station_id, favorite.to_station_id)
             for favorite in user_favorites
         ]
-        text = '\n\n'.join(favorite_texts)
+        text = "\n\n".join(favorite_texts)
     else:
         text = messages.CLEAR_FAVORITES
 
@@ -193,15 +193,15 @@ async def download_log(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message is None:
         return
 
-    time = dt.datetime.now().strftime('%d%m%Y%H%M%S')
-    filename = f'bot_{time}.log'
+    time = dt.datetime.now().strftime("%d%m%Y%H%M%S")
+    filename = f"bot_{time}.log"
     await update.message.reply_document(settings.LOG_FILENAME, filename=filename)
 
 
 async def _send_time_to_train(
-        update: Update,
-        from_station_id: int,
-        to_station_id: int,
+    update: Update,
+    from_station_id: int,
+    to_station_id: int,
 ) -> None:
     """Функция отправляет пользователю время до ближайших поездов."""
     if (query := update.callback_query) is None:
@@ -212,9 +212,9 @@ async def _send_time_to_train(
 
 
 async def _save_favorite(
-        update: Update,
-        from_station_id: int,
-        to_station_id: int,
+    update: Update,
+    from_station_id: int,
+    to_station_id: int,
 ) -> None:
     """Функция сохраняет маршрут в БД и отправляет ответ пользователю."""
     if (query := update.callback_query) is None:
@@ -246,17 +246,17 @@ async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) 
     if not schedules:
         from_station_name = get_stations_dict().get(from_station_id)
         to_station_name = get_stations_dict().get(to_station_id)
-        direction = f'{from_station_name} ➡ {to_station_name}'
-        return messages.DIRECTION_TRAIN.format(direction=direction) + '\n\n' + messages.NONE_TRAIN
+        direction = f"{from_station_name} ➡ {to_station_name}"
+        return messages.DIRECTION_TRAIN.format(direction=direction) + "\n\n" + messages.NONE_TRAIN
 
-    text = messages.DIRECTION_TRAIN.format(direction=schedules[0].direction) + '\n\n'
+    text = messages.DIRECTION_TRAIN.format(direction=schedules[0].direction) + "\n\n"
     if len(schedules) == 1:
-        time_to_train = schedules[0].time_to_train.strftime('%M:%S')
+        time_to_train = schedules[0].time_to_train.strftime("%M:%S")
         return text + messages.LAST_TIME_TRAIN.format(time_to_train=time_to_train)
 
-    text += messages.CLOSEST_TIME_TRAIN.format(time_to_train=schedules[0].time_to_train.strftime('%M:%S'))
-    for schedule in schedules[1:settings.LIMIT_ROW + 1]:
-        text += '\n' + messages.NEXT_TIME_TRAIN.format(time_to_train=schedule.time_to_train.strftime('%M:%S'))
+    text += messages.CLOSEST_TIME_TRAIN.format(time_to_train=schedules[0].time_to_train.strftime("%M:%S"))
+    for schedule in schedules[1 : settings.LIMIT_ROW + 1]:
+        text += "\n" + messages.NEXT_TIME_TRAIN.format(time_to_train=schedule.time_to_train.strftime("%M:%S"))
     return text
 
 
@@ -266,13 +266,13 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
         return
 
     logger.error("Исключение при обработке объекта update:", exc_info=context.error)
-    traceback_string = ''.join(traceback.format_exception(None, context.error, context.error.__traceback__))
+    traceback_string = "".join(traceback.format_exception(None, context.error, context.error.__traceback__))
     update_str = update.to_dict() if isinstance(update, Update) else str(update)
     message_kwargs = {
-        'update': html.escape(json.dumps(update_str, indent=2, ensure_ascii=False)),
-        'chat_data': html.escape(str(context.chat_data)),
-        'user_data': html.escape(str(context.user_data)),
-        'traceback_string': traceback_string,
+        "update": html.escape(json.dumps(update_str, indent=2, ensure_ascii=False)),
+        "chat_data": html.escape(str(context.chat_data)),
+        "user_data": html.escape(str(context.user_data)),
+        "traceback_string": traceback_string,
     }
     text = messages.ERROR.format(**message_kwargs)
     await context.bot.send_message(chat_id=settings.DEVELOPER_TG_ID, text=text, parse_mode=ParseMode.HTML)
@@ -280,7 +280,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 
 CONVERSATION_HANDLER = ConversationHandler(
     entry_points=[
-        CommandHandler((commands.SCHEDULE, commands.ADD_FAVORITE), stations),
+        CommandHandler((bot_commands.SCHEDULE, bot_commands.ADD_FAVORITE), stations),
     ],
     states={
         settings.CHOICE_DIRECTION: [CallbackQueryHandler(directions)],

@@ -1,6 +1,8 @@
 import datetime as dt
 
-from app.config import settings
+from .config import settings
+
+WORKING_DAYS = 5
 
 
 async def is_weekend() -> bool:
@@ -10,7 +12,7 @@ async def is_weekend() -> bool:
         True, если текущий день является выходным (суббота или воскресенье);
           False в противном случае.
     """
-    return (dt.datetime.now() - dt.timedelta(minutes=30)).isoweekday() > 5
+    return (dt.datetime.now() - dt.timedelta(minutes=30)).isoweekday() > WORKING_DAYS
 
 
 async def metro_is_closed() -> bool:

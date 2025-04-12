@@ -5,14 +5,17 @@ from telegram.ext import (
     filters,
 )
 
-from app import commands, handlers
-from app.config import settings
+from . import (
+    bot_commands,
+    handlers,
+)
+from .config import settings
 
 COMMAND_HANDLERS = {
-    commands.START: handlers.start,
-    commands.HELP: handlers.help_handler,
-    commands.FAVORITES: handlers.favorites,
-    commands.CLEAR_FAVORITES: handlers.clear_favorites,
+    bot_commands.START: handlers.start,
+    bot_commands.HELP: handlers.help_handler,
+    bot_commands.FAVORITES: handlers.favorites,
+    bot_commands.CLEAR_FAVORITES: handlers.clear_favorites,
 }
 
 
@@ -23,7 +26,7 @@ def start_bot() -> None:
         application.add_handler(CommandHandler(command, callback))
     application.add_handler(
         CommandHandler(
-            commands.DOWNLOAD_LOG,
+            bot_commands.DOWNLOAD_LOG,
             handlers.download_log,
             filters.User(settings.DEVELOPER_TG_ID),
         ),

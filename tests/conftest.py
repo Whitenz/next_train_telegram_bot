@@ -1,52 +1,50 @@
-import asyncio
+from collections.abc import Generator
 from pathlib import PurePath
+from typing import (
+    Any,
+)
 
 import pytest
 from sqlalchemy import text
+from src.config import settings
+from src.db import (
+    sync_engine,
+    sync_session,
+)
+from src.models import Base
 
-from app.config import settings
-from src.app.db import sync_engine, sync_session
-from src.app.models import Base
-from tests.fixtures.schedules import schedules
-from tests.fixtures.bot_users import new_telegram_user
+from .fixtures.bot_users import new_telegram_user
+from .fixtures.schedules import schedules
 
 __all__ = [
-    'schedules',
-    'new_telegram_user',
+    "new_telegram_user",
+    "schedules",
 ]
 
 
-@pytest.fixture(scope='session')
-def check_test_mode():
-    assert settings.MODE == 'test'
+@pytest.fixture(scope="session")
+def check_test_mode() -> None:
+    assert settings.MODE == "test"
 
 
-@pytest.fixture(scope='session', autouse=True)
-def init_db(check_test_mode):
+@pytest.fixture(scope="session", autouse=True)
+def init_db(check_test_mode: None) -> Generator[None, Any, None]:
     Base.metadata.drop_all(sync_engine)
     Base.metadata.create_all(sync_engine)
     yield
     Base.metadata.drop_all(sync_engine)
 
 
-@pytest.fixture(scope='session')
-def sql_commands():
-    sql_commands_file = PurePath.joinpath(settings.BASE_DIR, 'data', 'populate_db.sql')
-    with open(sql_commands_file) as f:
-        sql_commands = f.read().split('\n\n')
-    return sql_commands
+@pytest.fixture(scope="session")
+def sql_commands() -> list[str]:
+    sql_commands_file = PurePath.joinpath(settings.BASE_DIR, "data", "populate_db.sql")
+    with sql_commands_file.open("r") as f:
+        return f.read().split("\n\n")
 
 
-@pytest.fixture(scope='session')
-def populate_db(sql_commands: list[str]):
+@pytest.fixture(scope="session")
+def populate_db(sql_commands: list[str]) -> None:
     with sync_session() as session:
         for command in sql_commands:
             session.execute(text(command))
         session.commit()
-
-
-@pytest.fixture(scope="session")
-def event_loop(request):
-    loop = asyncio.get_event_loop()
-    yield loop
-    loop.close()

@@ -1,9 +1,16 @@
-from app.stations import get_stations_dict
+from collections.abc import Generator
+from typing import (
+    Any,
+)
+
+from src.stations import get_stations_dict
+
+COUNT_STATIONS = 9
 
 
-def test_get_stations_dict(init_db):
+def test_get_stations_dict(init_db: Generator[None, Any, None]) -> None:
     stations_dict = get_stations_dict()
-    assert type(stations_dict) == dict
-    assert len(stations_dict) == 9
-    assert all(type(key) == int for key in stations_dict.keys())
-    assert all(type(value) == str for value in stations_dict.values())
+    assert len(stations_dict) == COUNT_STATIONS
+    assert type(stations_dict) is dict
+    assert all(type(key) is int for key in stations_dict)
+    assert all(type(value) is str for value in stations_dict.values())

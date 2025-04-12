@@ -7,7 +7,7 @@ readme = "README.MD"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "~3.11"
+python = "~3.12"
 python-telegram-bot = {version = "^20.5", extras = ["job-queue"]}
 pydantic = {version = "^2.0", extras = ["dotenv"]}
 sqlalchemy = "^2.0.21"
@@ -20,6 +20,7 @@ pytest = "^7.4.2"
 pytest-asyncio = "^0.21.1"
 pytest-dotenv = "^0.5.2"
 mypy = "^1.10.0"
+freezegun = "^1.5.1"
 
 
 [tool.mypy]

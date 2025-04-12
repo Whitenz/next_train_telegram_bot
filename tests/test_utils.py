@@ -1,5 +1,6 @@
 import datetime as dt
 
+import freezegun
 import pytest
 
 from src.app import utils
@@ -15,7 +16,8 @@ from src.app.config import settings
     ]
 )
 async def test_is_weekend(day, expected):
-    assert await utils.is_weekend(day) == expected
+    with freezegun.freeze_time(day):
+        assert await utils.is_weekend() == expected
 
 
 @pytest.mark.asyncio
@@ -30,4 +32,6 @@ async def test_is_weekend(day, expected):
     ]
 )
 async def test_metro_is_closed(time, expected):
-    assert await utils.metro_is_closed(time) == expected
+    current_dt = dt.datetime.now()
+    with freezegun.freeze_time(current_dt.replace(hour=time.hour, minute=time.minute, second=time.second)):
+        assert await utils.metro_is_closed() == expected

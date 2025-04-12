@@ -1,15 +1,20 @@
-FROM python:3.12-alpine
+FROM ghcr.io/astral-sh/uv:python3.12-alpine
 
 ENV TZ="Asia/Yekaterinburg"
-
-WORKDIR /src
-
-COPY src pyproject.toml poetry.lock ./
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV PATH=".venv/bin:$PATH"
 
 RUN apk add --no-cache gcc musl-dev linux-headers
 
-RUN pip install poetry==1.8.4
-RUN poetry config virtualenvs.create false
-RUN poetry install --only main
+WORKDIR /app
 
-CMD ["python", "main.py"]
+COPY pyproject.toml uv.lock ./
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+COPY src ./
+
+ENTRYPOINT []
+CMD ["uv", "run", "main.py"]

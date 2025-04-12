@@ -1,33 +1,34 @@
-[tool.poetry]
+[project]
 name = "next-train-telegram-bot"
 version = "0.1.0"
 description = "TelegramBot for inform you about next train in metro Yekaterinburg"
-authors = ["Ilya Kolesnikov <zloy-gamer@yandex.ru>"]
+authors = [{ name = "Ilya Kolesnikov", email = "zloy-gamer@yandex.ru" }]
+requires-python = ">=3.12"
 readme = "README.MD"
-package-mode = false
-
-[tool.poetry.dependencies]
-python = "~3.12"
-python-telegram-bot = {version = "^20.5", extras = ["job-queue"]}
-pydantic = {version = "^2.0", extras = ["dotenv"]}
-sqlalchemy = "^2.0.21"
-asyncpg = "^0.28.0"
-psycopg2-binary = "^2.9.6"
-pydantic-settings = "^2.0.3"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.2"
-pytest-asyncio = "^0.21.1"
-pytest-dotenv = "^0.5.2"
-mypy = "^1.10.0"
-freezegun = "^1.5.1"
-
-
-[tool.mypy]
-plugins = [
-  "pydantic.mypy",
+dependencies = [
+    "python-telegram-bot[job-queue]~=20.5",
+    "sqlalchemy>=2.0.21,<3",
+    "asyncpg>=0.28.0,<0.29",
+    "psycopg2-binary>=2.9.6,<3",
+    "pydantic-settings>=2.0.3,<3",
+    "pydantic>=2.10.3",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=7.4.2,<8",
+    "pytest-asyncio>=0.21.1,<0.22",
+    "pytest-dotenv>=0.5.2,<0.6",
+    "mypy>=1.10.0,<2",
+    "freezegun>=1.5.1,<2",
+]
+
+[tool.uv]
+package = false
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 pythonpath = [
@@ -41,8 +42,3 @@ python_files = [
 ]
 env_override_existing_values = 1
 env_files = ".env.test"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"

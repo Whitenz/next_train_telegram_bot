@@ -1,0 +1,72 @@
+# размер отступов в пробелах
+indent-width = 4
+# длина строка для линтера и форматтера
+line-length = 120
+target-version = "py312"
+# Целевые папки для линтера/форматтера
+src = [
+    "src",
+    "tests",
+]
+fix = true
+# группирует ошибки по файлам
+required-version = "~=0.9"
+show-fixes = true
+
+[format]
+# Двойные кавычки в строках
+quote-style = "double"
+
+# Пробелы вместо табов для отступов
+indent-style = "space"
+
+# форматирование кода в док-стрингах
+docstring-code-format = true
+
+# Длина строк в doc-strings
+docstring-code-line-length = 120
+
+# Конец строки в стиле linux
+line-ending = "lf"
+
+[lint]
+# Используем все правила линтера
+select = ["ALL"]
+# Разрешаем автоматически фиксить все разрешённые правила (--fix)
+fixable = ["ALL"]
+ignore = [
+    "G004",  # Игнорирование этого правила разрешает использовать f-string в logging
+    "RUF002",  # Игнорирование этого правила разрешает использовать кириллические символы в doc-strings
+    "COM812",  # излишне использовать вместе с форматтером
+    "FBT001",  # Разрешает булевы значения аргументов
+    "D", # Игнорировать ошибки связанные docstring TODO: write docstrings
+]
+# разрешаем неиспользуемые переменные с префиксом в виде подчёркивания
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+
+[lint.extend-per-file-ignores]
+"__init__.py" = [
+    "F401",  # игнориуем неиспользуемые импорты в __init__.py
+]
+"tests/**" = [
+    "S101",  # игнорируем assert в тестах
+    "T201",  # игнорируем print в тестах
+    "ARG001",  # игнорируем неиспользуеые аргументы (фикстуры) в тестах
+    "PLR0913",  # Игнорирует ошибку "too-many-arguments" (5 по умолчанию)
+    "SLF001",  # Игнорирование доступа к приватным атрибутам
+]
+"tests/**/__init__.py" = [
+    "D104",  # игнорируем отсутствие doc-strings в __init__.py в тестах
+]
+"conftest.py" = [
+    "D100",  # Игнорируем отсутствие doc-strings в conftest.py
+]
+
+[lint.flake8-annotations]
+allow-star-arg-any = true  # разрешаем использовать Any в &args, **kwargs
+
+[lint.isort]
+case-sensitive = true
+combine-as-imports = true
+force-wrap-aliases = true

@@ -5,8 +5,8 @@ services:
     restart: always
     volumes:
       - db_vol:/var/lib/postgresql/data/
-      - ./src/data/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
-      - ./src/data/populate_db.sql:/docker-entrypoint-initdb.d/populate_db.sql
+      - ./data/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - ./data/populate_db.sql:/docker-entrypoint-initdb.d/populate_db.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${PGUSER}"]
       interval: 10s
@@ -16,10 +16,10 @@ services:
       - .env.prod
 
   backend:
-    image: whitenz/next_train:latest
+    image: whitenz/next_train:0.7.0
     container_name: next_train_backend_cont
     volumes:
-      - data_vol:/src/data/
+      - data_vol:/app/logs/
     depends_on:
       db:
         condition: service_healthy

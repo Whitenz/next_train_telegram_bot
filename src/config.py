@@ -2,7 +2,6 @@ import datetime
 import logging
 from pathlib import (
     Path,
-    PurePath,
 )
 
 import pydantic as p
@@ -27,7 +26,7 @@ class Settings(ps.BaseSettings):
     BASE_DIR: p.DirectoryPath = Path(__file__).parents[1]
 
     # logger params
-    LOG_FILENAME: PurePath = PurePath.joinpath(BASE_DIR, "data", "bot.log")
+    LOG_FILENAME: Path = BASE_DIR / "logs" / "bot.log"
     LOGGER_TEXT: str = 'Пользователь {first_name} ({id}) отправил команду "{command}"'
 
     # bot params
@@ -51,6 +50,7 @@ class Settings(ps.BaseSettings):
 
 
 settings = Settings()
+settings.LOG_FILENAME.parent.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
     filename=settings.LOG_FILENAME,

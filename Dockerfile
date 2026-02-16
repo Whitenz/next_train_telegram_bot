@@ -14,7 +14,8 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-COPY src ./
+COPY src/ ./src/
+COPY main.py ./
 
 ENTRYPOINT []
 CMD ["uv", "run", "main.py"]

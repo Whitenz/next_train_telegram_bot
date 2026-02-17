@@ -265,3 +265,27 @@ async def select_all_users(
 
     async with current_session() as session:
         return list((await session.scalars(statement)).all())
+
+
+async def delete_user(
+    user_id: int,
+    current_session: async_sessionmaker[AsyncSession] = async_session,
+) -> bool:
+    """Delete a user from the database.
+
+    Args:
+        user_id: Telegram user ID to delete.
+        current_session: Async session factory for DB access.
+
+    Returns:
+        True if user was deleted, False if not found.
+    """
+    statement = select(BotUser).where(BotUser.bot_user_id == user_id)
+
+    async with current_session() as session:
+        user = (await session.scalars(statement)).one_or_none()
+        if user is None:
+            return False
+        await session.delete(user)
+        await session.commit()
+        return True

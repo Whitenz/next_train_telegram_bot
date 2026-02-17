@@ -80,3 +80,35 @@ class TestBotUser:
         user_ids = [u.bot_user_id for u in users]
         assert 111 in user_ids
         assert 222 in user_ids
+
+    @pytest.mark.asyncio
+    async def test_delete_user(self, async_session_fixture) -> None:
+        """Test that we can delete a user from database."""
+        # Create a test user
+        user = models.BotUser(
+            bot_user_id=999,
+            first_name="ToDelete",
+            last_name=None,
+            username="to_delete",
+            is_bot=False,
+        )
+        async_session_fixture.add(user)
+        await async_session_fixture.commit()
+
+        # Verify user exists
+        users_before = await db.select_all_users()
+        user_ids_before = [u.bot_user_id for u in users_before]
+        assert 999 in user_ids_before
+
+        # Delete the user
+        result = await db.delete_user(999)
+        assert result is True
+
+        # Verify user is deleted
+        users_after = await db.select_all_users()
+        user_ids_after = [u.bot_user_id for u in users_after]
+        assert 999 not in user_ids_after
+
+        # Try deleting non-existent user
+        result2 = await db.delete_user(999)
+        assert result2 is False

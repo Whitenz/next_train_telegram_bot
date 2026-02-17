@@ -6,8 +6,14 @@ from typing import (
 
 import pytest
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+)
 from src.config import settings
 from src.db import (
+    async_engine,
+    async_session,
     sync_engine,
     sync_session,
 )
@@ -20,6 +26,14 @@ __all__ = [
     "new_telegram_user",
     "schedules",
 ]
+
+
+@pytest.fixture
+async def async_session_fixture() -> AsyncSession:
+    """Create an async session for testing."""
+    async with async_session() as session:
+        yield session
+        await session.rollback()
 
 
 @pytest.fixture(scope="session")

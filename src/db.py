@@ -251,3 +251,17 @@ async def favorites_limited(
         if not isinstance(count, int):
             raise TypeError
         return count >= settings.LIMIT_FAVORITES
+
+
+async def select_all_users(
+    current_session: async_sessionmaker[AsyncSession] = async_session,
+) -> list[BotUser]:
+    """Select all users from the database.
+
+    Returns:
+        List of all BotUser objects.
+    """
+    statement = select(BotUser)
+
+    async with current_session() as session:
+        return list((await session.scalars(statement)).all())

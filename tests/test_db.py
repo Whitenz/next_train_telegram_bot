@@ -46,3 +46,37 @@ class TestBotUser:
         assert bot_users[0].last_name == new_telegram_user.last_name
         assert bot_users[0].username == new_telegram_user.username
         assert bot_users[0].is_bot == new_telegram_user.is_bot
+
+    @pytest.mark.asyncio
+    async def test_select_all_users(self, async_session_fixture) -> None:
+        """Test that we can select all users from database."""
+        # Get initial count
+        initial_users = await db.select_all_users()
+        initial_count = len(initial_users)
+
+        # Create some test users
+        user1 = models.BotUser(
+            bot_user_id=111,
+            first_name="Test1",
+            last_name=None,
+            username="test1",
+            is_bot=False,
+        )
+        user2 = models.BotUser(
+            bot_user_id=222,
+            first_name="Test2",
+            last_name=None,
+            username="test2",
+            is_bot=False,
+        )
+        async_session_fixture.add(user1)
+        async_session_fixture.add(user2)
+        await async_session_fixture.commit()
+
+        # Test the function
+        users = await db.select_all_users()
+
+        assert len(users) == initial_count + 2
+        user_ids = [u.bot_user_id for u in users]
+        assert 111 in user_ids
+        assert 222 in user_ids

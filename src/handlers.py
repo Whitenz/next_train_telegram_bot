@@ -218,6 +218,48 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return settings.WAITING_FOR_BROADCAST_TEXT
 
 
+@write_log
+async def broadcast_receive_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Этап диалога для получения текста рассылки.
+    Проверяет валидность текста и показывает preview.
+    """
+    if update.effective_user is None or update.message is None or context.chat_data is None:
+        return ConversationHandler.END
+
+    text = update.message.text or ""
+
+    # Validate text length
+    if len(text) > 4096:
+        await update.message.reply_text(messages.BROADCAST_TOO_LONG)
+        return settings.WAITING_FOR_BROADCAST_TEXT
+
+    # Validate text not empty
+    if not text.strip():
+        await update.message.reply_text(messages.BROADCAST_EMPTY)
+        return settings.WAITING_FOR_BROADCAST_TEXT
+
+    # Get all users
+    users = await db.select_all_users()
+    recipient_count = len(users)
+
+    # Save text to chat_data
+    context.chat_data["broadcast_text"] = text
+
+    # Show preview
+    preview_text = messages.BROADCAST_PREVIEW.format(
+        recipients=recipient_count,
+        text=text,
+    )
+    await update.message.reply_text(
+        preview_text,
+        parse_mode=ParseMode.HTML,
+        reply_markup=keyboards.BROADCAST_CONFIRM_MARKUP,
+    )
+
+    return settings.WAITING_FOR_BROADCAST_CONFIRM
+
+
 async def _send_time_to_train(
     update: Update,
     from_station_id: int,

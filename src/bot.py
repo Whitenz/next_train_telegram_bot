@@ -16,6 +16,7 @@ COMMAND_HANDLERS = {
     bot_commands.HELP: handlers.help_handler,
     bot_commands.FAVORITES: handlers.favorites,
     bot_commands.CLEAR_FAVORITES: handlers.clear_favorites,
+    bot_commands.BROADCAST: handlers.broadcast,
 }
 
 
@@ -32,6 +33,7 @@ def start_bot() -> None:
         ),
     )
     application.add_handler(handlers.CONVERSATION_HANDLER)
+    application.add_handler(handlers.BROADCAST_CONVERSATION_HANDLER)
     application.add_handler(MessageHandler(filters.ALL, handlers.wrong_command))
     application.add_error_handler(handlers.error_handler)
     application.run_polling()

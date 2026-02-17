@@ -34,6 +34,8 @@ class Settings(ps.BaseSettings):
     CLOSE_TIME_METRO: datetime.time = datetime.time(hour=0, minute=30)
     CHOICE_DIRECTION: int = p.Field(default=0, ge=0)
     FINAL_STAGE: int = p.Field(default=1, ge=0)
+    WAITING_FOR_BROADCAST_TEXT: int = p.Field(default=3, ge=0)
+    WAITING_FOR_BROADCAST_CONFIRM: int = p.Field(default=4, ge=0)
     CONVERSATION_TIMEOUT: int = p.Field(default=60 * 3, ge=60, le=3600)
     MAX_WAITING_TIME: int = p.Field(default=60, ge=15, le=60)
     LIMIT_ROW: int = p.Field(default=2, ge=1)

@@ -1,3 +1,4 @@
+import asyncio
 import datetime as dt
 import html
 import json
@@ -7,6 +8,7 @@ from warnings import filterwarnings
 
 from telegram import Update
 from telegram.constants import ParseMode
+from telegram.error import Forbidden, NetworkError, TimedOut
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -355,6 +357,47 @@ async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) 
     for schedule in schedules[1 : settings.LIMIT_ROW + 1]:
         text += "\n" + messages.NEXT_TIME_TRAIN.format(time_to_train=schedule.time_to_train.strftime("%M:%S"))
     return text
+
+
+async def _send_broadcast(text: str, bot, users: list) -> dict:
+    """
+    Execute broadcast message to all users with rate limiting.
+
+    Args:
+        text: Message text to send.
+        bot: Telegram bot instance.
+        users: List of BotUser objects.
+
+    Returns:
+        Dictionary with keys: sent, failed, blocked.
+    """
+    sent = 0
+    failed = 0
+    blocked = 0
+
+    for user in users:
+        try:
+            await bot.send_message(chat_id=user.bot_user_id, text=text)
+            sent += 1
+        except Forbidden:
+            # User blocked the bot - delete from DB
+            await db.delete_user(user.bot_user_id)
+            blocked += 1
+            logger.warning(f"User {user.bot_user_id} blocked bot, deleted from DB")
+        except (NetworkError, TimedOut):
+            # Temporary network error - don't delete user
+            failed += 1
+            logger.error(f"Failed to send to {user.bot_user_id}: network error")
+        except Exception as e:
+            # Other errors
+            failed += 1
+            logger.error(f"Failed to send to {user.bot_user_id}: {e}")
+
+        # Rate limiting: 27 messages per second = ~37ms delay
+        if sent + failed + blocked < len(users):  # Don't sleep after last message
+            await asyncio.sleep(0.037)
+
+    return {"sent": sent, "failed": failed, "blocked": blocked}
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:

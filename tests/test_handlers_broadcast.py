@@ -178,7 +178,6 @@ async def test_broadcast_confirm_cancel(
     assert result == ConversationHandler.END
 
 
-@pytest.mark.skip(reason="_send_broadcast not implemented yet (Task 10)")
 @pytest.mark.asyncio
 async def test_broadcast_confirm_success(
     update_mock: Mock, context_mock: Mock, developer_id: int
@@ -206,4 +205,97 @@ async def test_broadcast_confirm_success(
     assert "Отправлено: 2" in args[0][0]
     assert context_mock.chat_data == {}
     assert result == ConversationHandler.END
+
+
+@pytest.mark.asyncio
+async def test_send_broadcast_all_success(mock_db_users: list) -> None:
+    """Test sending broadcast to all users successfully."""
+    from unittest.mock import AsyncMock, patch, MagicMock
+
+    # Mock bot.send_message to succeed
+    async def mock_send_message(*args: object, **kwargs: object) -> MagicMock:
+        return MagicMock()
+
+    # Mock asyncio.sleep to avoid delay
+    async def mock_sleep(seconds: float) -> None:
+        pass
+
+    mock_bot = MagicMock()
+    mock_bot.send_message = mock_send_message
+
+    with patch("asyncio.sleep", new=mock_sleep):
+        result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
+
+    assert result["sent"] == 2
+    assert result["failed"] == 0
+    assert result["blocked"] == 0
+
+
+@pytest.mark.asyncio
+async def test_send_broadcast_with_blocked_user(mock_db_users: list) -> None:
+    """Test sending broadcast when one user blocked the bot."""
+    from unittest.mock import AsyncMock, patch, MagicMock
+    from telegram.error import Forbidden
+
+    # Mock bot.send_message to raise Forbidden for first user
+    call_count = 0
+
+    async def mock_send_message(chat_id: int, *args: object, **kwargs: object) -> MagicMock:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise Forbidden("User is deactivated")
+        return MagicMock()
+
+    async def mock_sleep(seconds: float) -> None:
+        pass
+
+    mock_bot = MagicMock()
+    mock_bot.send_message = mock_send_message
+
+    # Mock db.delete_user
+    with patch("asyncio.sleep", new=mock_sleep), patch(
+        "src.handlers.db.delete_user", new=AsyncMock(return_value=True)
+    ) as mock_delete:
+        result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
+
+    # Check that user was deleted
+    mock_delete.assert_called_once_with(111)
+    assert result["sent"] == 1
+    assert result["failed"] == 0
+    assert result["blocked"] == 1
+
+
+@pytest.mark.asyncio
+async def test_send_broadcast_with_network_error(mock_db_users: list) -> None:
+    """Test sending broadcast when network error occurs."""
+    from unittest.mock import AsyncMock, patch, MagicMock
+    from telegram.error import NetworkError
+
+    # Mock bot.send_message to raise NetworkError for first user
+    call_count = 0
+
+    async def mock_send_message(chat_id: int, *args: object, **kwargs: object) -> MagicMock:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise NetworkError("Network error")
+        return MagicMock()
+
+    async def mock_sleep(seconds: float) -> None:
+        pass
+
+    mock_bot = MagicMock()
+    mock_bot.send_message = mock_send_message
+
+    with patch("asyncio.sleep", new=mock_sleep), patch(
+        "src.handlers.db.delete_user", new=AsyncMock(return_value=True)
+    ) as mock_delete:
+        result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
+
+    # User should NOT be deleted for network errors
+    mock_delete.assert_not_called()
+    assert result["sent"] == 1
+    assert result["failed"] == 1
+    assert result["blocked"] == 0
 

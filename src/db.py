@@ -280,12 +280,9 @@ async def delete_user(
     Returns:
         True if user was deleted, False if not found.
     """
-    statement = select(BotUser).where(BotUser.bot_user_id == user_id)
+    statement = delete(BotUser).where(BotUser.bot_user_id == user_id)
 
     async with current_session() as session:
-        user = (await session.scalars(statement)).one_or_none()
-        if user is None:
-            return False
-        await session.delete(user)
+        result = await session.execute(statement)
         await session.commit()
-        return True
+        return result.rowcount > 0

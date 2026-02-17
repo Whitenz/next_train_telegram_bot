@@ -25,6 +25,8 @@ from .fixtures.schedules import schedules
 __all__ = [
     "new_telegram_user",
     "schedules",
+    "populate_db",
+    "async_session_fixture",
 ]
 
 

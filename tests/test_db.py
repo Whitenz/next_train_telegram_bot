@@ -112,3 +112,55 @@ class TestBotUser:
         # Try deleting non-existent user
         result2 = await db.delete_user(999)
         assert result2 is False
+
+    @pytest.mark.asyncio
+    async def test_delete_user_cascades_favorites(self, async_session_fixture, populate_db: None) -> None:
+        """Test that deleting a user cascades to their favorite routes."""
+        # Create a test user
+        user = models.BotUser(
+            bot_user_id=888,
+            first_name="CascadeUser",
+            last_name=None,
+            username="cascade_user",
+            is_bot=False,
+        )
+        async_session_fixture.add(user)
+        await async_session_fixture.commit()
+
+        # Create favorite routes for the user
+        favorite1 = models.Favorite(
+            bot_user_id=888,
+            from_station_id=1,
+            to_station_id=9,
+        )
+        favorite2 = models.Favorite(
+            bot_user_id=888,
+            from_station_id=2,
+            to_station_id=8,
+        )
+        async_session_fixture.add(favorite1)
+        async_session_fixture.add(favorite2)
+        await async_session_fixture.commit()
+
+        # Verify favorites exist
+        favorites_before = await async_session_fixture.execute(
+            db.select(models.Favorite).where(models.Favorite.bot_user_id == 888)
+        )
+        favorites_count_before = len(favorites_before.scalars().all())
+        assert favorites_count_before == 2, "User should have 2 favorite routes"
+
+        # Delete the user
+        result = await db.delete_user(888)
+        assert result is True, "User deletion should succeed"
+
+        # Verify user is deleted
+        users_after = await db.select_all_users()
+        user_ids_after = [u.bot_user_id for u in users_after]
+        assert 888 not in user_ids_after, "User should be deleted"
+
+        # Verify favorites are cascade deleted
+        favorites_after = await async_session_fixture.execute(
+            db.select(models.Favorite).where(models.Favorite.bot_user_id == 888)
+        )
+        favorites_count_after = len(favorites_after.scalars().all())
+        assert favorites_count_after == 0, "All favorite routes should be cascade deleted"

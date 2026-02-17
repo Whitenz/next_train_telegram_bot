@@ -33,3 +33,24 @@ ERROR: str = (
     "<pre>context.user_data = {user_data}</pre>\n\n"
     "<pre>{traceback_string}</pre>"
 )
+
+# Broadcast messages
+BROADCAST_TEXT: str = "Введите текст сообщения для рассылки:"
+BROADCAST_PREVIEW: str = (
+    "✉ <b>Предпросмотр рассылки</b>\n\n"
+    "Получателей: {recipients}\n\n"
+    "Текст сообщения:\n{text}\n\n"
+    "Подтверждаете отправку?"
+)
+BROADCAST_CANCELLED: str = "❌ Рассылка отменена"
+BROADCAST_REPORT: str = (
+    "✅ Рассылка завершена\n\n"
+    "Отправлено: {sent}\n"
+    "Ошибок: {failed}\n"
+    "Заблокировали бот: {blocked}"
+)
+BROADCAST_TOO_LONG: str = (
+    "❌ Текст сообщения слишком длинный (максимум 4096 символов). Попробуйте короче."
+)
+BROADCAST_EMPTY: str = "❌ Текст сообщения не может быть пустым."
+BROADCAST_FORBIDDEN: str = "❌ У вас нет прав для выполнения этой команды."

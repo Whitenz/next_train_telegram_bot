@@ -198,6 +198,26 @@ async def download_log(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_document(settings.LOG_FILENAME, filename=filename)
 
 
+@write_log
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Обработчик команды /broadcast.
+    Начало диалога рассылки. Запрашивает текст сообщения.
+    Только для DEVELOPER_TG_ID.
+    """
+    if update.effective_user is None or update.message is None:
+        await wrong_command(update, context)
+        return ConversationHandler.END
+
+    # Check if user is authorized
+    if update.effective_user.id != settings.DEVELOPER_TG_ID:
+        await update.message.reply_text(messages.BROADCAST_FORBIDDEN)
+        return ConversationHandler.END
+
+    await update.message.reply_text(messages.BROADCAST_TEXT)
+    return settings.WAITING_FOR_BROADCAST_TEXT
+
+
 async def _send_time_to_train(
     update: Update,
     from_station_id: int,

@@ -21,3 +21,13 @@ END_STATION_DIRECTION = {
     FIRST_STATION_BUTTON.callback_data: LAST_STATION_BUTTON.callback_data,
     LAST_STATION_BUTTON.callback_data: FIRST_STATION_BUTTON.callback_data,
 }
+
+# Клавиатура подтверждения рассылки
+BROADCAST_CONFIRM_MARKUP = InlineKeyboardMarkup(
+    [
+        [
+            InlineKeyboardButton("✅ Отправить", callback_data="broadcast_confirm"),
+            InlineKeyboardButton("❌ Отмена", callback_data="broadcast_cancel"),
+        ]
+    ]
+)

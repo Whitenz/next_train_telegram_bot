@@ -19,6 +19,7 @@ dev = [
     "freezegun>=1.5.5",
     "mypy>=1.19.1",
     "pytest>=9.0.2",
+    "pytest-asyncio>=0.23.0",
     "pytest-dotenv>=0.5.2",
 ]
 
@@ -41,3 +42,5 @@ python_files = [
 ]
 env_override_existing_values = 1
 env_files = ".env.test"
+asyncio_mode = "auto"
+asyncio_default_test_loop_scope = "session"

@@ -6,7 +6,7 @@ from src import utils
 from src.config import settings
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "day",
@@ -22,7 +22,7 @@ async def test_is_weekend(day: dt.datetime, expected: bool) -> None:
         assert await utils.is_weekend() == expected
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "time",

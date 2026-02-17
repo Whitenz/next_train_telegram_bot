@@ -21,7 +21,7 @@ class TestSchedule:
             "Объекты должны быть экземплярами класса Schedule."
         )
 
-    @pytest.mark.anyio
+    @pytest.mark.asyncio
     async def test_select_schedule(self) -> None:
         schedules = await db.select_schedule(from_station_id=1, to_station_id=9)
 
@@ -32,7 +32,7 @@ class TestSchedule:
 
 
 class TestBotUser:
-    @pytest.mark.anyio
+    @pytest.mark.asyncio
     async def test_insert_user(self, new_telegram_user: User) -> None:
         bot_users = get_bot_users()
         assert len(bot_users) == 0, "Изначально таблица bot_user должна быть пустая."

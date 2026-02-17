@@ -433,3 +433,17 @@ CONVERSATION_HANDLER = ConversationHandler(
     fallbacks=[MessageHandler(filters.ALL, wrong_command)],
     conversation_timeout=settings.CONVERSATION_TIMEOUT,
 )
+
+BROADCAST_CONVERSATION_HANDLER = ConversationHandler(
+    entry_points=[CommandHandler(bot_commands.BROADCAST, broadcast)],
+    states={
+        settings.WAITING_FOR_BROADCAST_TEXT: [MessageHandler(filters.TEXT & ~filters.COMMAND, broadcast_receive_text)],
+        settings.WAITING_FOR_BROADCAST_CONFIRM: [CallbackQueryHandler(broadcast_confirm)],
+        ConversationHandler.TIMEOUT: [
+            MessageHandler(filters.ALL, timeout),
+            CallbackQueryHandler(timeout),
+        ],
+    },
+    fallbacks=[MessageHandler(filters.ALL, wrong_command)],
+    conversation_timeout=settings.CONVERSATION_TIMEOUT,
+)

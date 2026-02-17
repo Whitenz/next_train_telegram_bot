@@ -260,6 +260,41 @@ async def broadcast_receive_text(update: Update, context: ContextTypes.DEFAULT_T
     return settings.WAITING_FOR_BROADCAST_CONFIRM
 
 
+@write_log
+async def broadcast_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Заключительный этап диалога команды /broadcast.
+    Если получена отмена - отменяет рассылку.
+    Если получено подтверждение - выполняет отправку.
+    """
+    if (query := update.callback_query) is None or context.chat_data is None:
+        return ConversationHandler.END
+
+    await query.answer()
+
+    # Check if cancelled
+    if query.data == "broadcast_cancel":
+        context.chat_data.clear()
+        await query.edit_message_text(messages.BROADCAST_CANCELLED)
+        return ConversationHandler.END
+
+    # Execute broadcast
+    text = context.chat_data.get("broadcast_text", "")
+    users = await db.select_all_users()
+    result = await _send_broadcast(text, query.bot, users)
+
+    # Show report
+    report_text = messages.BROADCAST_REPORT.format(
+        sent=result["sent"],
+        failed=result["failed"],
+        blocked=result["blocked"],
+    )
+    await query.edit_message_text(report_text, parse_mode=ParseMode.HTML)
+
+    context.chat_data.clear()
+    return ConversationHandler.END
+
+
 async def _send_time_to_train(
     update: Update,
     from_station_id: int,

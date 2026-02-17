@@ -154,3 +154,56 @@ async def test_broadcast_receive_text_success(
     assert context_mock.chat_data["broadcast_text"] == "Test broadcast message"
     assert result == settings.WAITING_FOR_BROADCAST_CONFIRM
 
+
+@pytest.mark.asyncio
+async def test_broadcast_confirm_cancel(
+    update_mock: Mock, context_mock: Mock, developer_id: int
+) -> None:
+    """Test cancelling the broadcast."""
+    from unittest.mock import MagicMock
+
+    update_mock.effective_user.id = developer_id
+    update_mock.callback_query = MagicMock()
+    update_mock.callback_query.from_user.id = developer_id
+    update_mock.callback_query.data = "broadcast_cancel"
+    update_mock.callback_query.answer = AsyncMock()
+    update_mock.callback_query.edit_message_text = AsyncMock()
+    context_mock.chat_data = {"broadcast_text": "Test message"}
+
+    result = await handlers.broadcast_confirm(update_mock, context_mock)
+
+    update_mock.callback_query.answer.assert_called_once()
+    update_mock.callback_query.edit_message_text.assert_called_once_with(messages.BROADCAST_CANCELLED)
+    assert context_mock.chat_data == {}
+    assert result == ConversationHandler.END
+
+
+@pytest.mark.skip(reason="_send_broadcast not implemented yet (Task 10)")
+@pytest.mark.asyncio
+async def test_broadcast_confirm_success(
+    update_mock: Mock, context_mock: Mock, developer_id: int
+) -> None:
+    """Test successful broadcast confirmation."""
+    from unittest.mock import AsyncMock, patch, MagicMock
+
+    update_mock.effective_user.id = developer_id
+    update_mock.callback_query = MagicMock()
+    update_mock.callback_query.from_user.id = developer_id
+    update_mock.callback_query.data = "broadcast_confirm"
+    update_mock.callback_query.answer = AsyncMock()
+    update_mock.callback_query.edit_message_text = AsyncMock()
+    update_mock.callback_query.bot = MagicMock()
+    context_mock.chat_data = {"broadcast_text": "Test message"}
+
+    # Mock the send_broadcast function
+    mock_result = {"sent": 2, "failed": 0, "blocked": 0}
+    with patch("src.handlers._send_broadcast", new=AsyncMock(return_value=mock_result)):
+        result = await handlers.broadcast_confirm(update_mock, context_mock)
+
+    update_mock.callback_query.answer.assert_called_once()
+    args = update_mock.callback_query.edit_message_text.call_args
+    assert "Рассылка завершена" in args[0][0]
+    assert "Отправлено: 2" in args[0][0]
+    assert context_mock.chat_data == {}
+    assert result == ConversationHandler.END
+

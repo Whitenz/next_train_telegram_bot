@@ -232,7 +232,8 @@ async def broadcast_receive_text(update: Update, context: ContextTypes.DEFAULT_T
     text = update.message.text or ""
 
     # Validate text length
-    if len(text) > 4096:
+    max_message_length = 4096
+    if len(text) > max_message_length:
         await update.message.reply_text(messages.BROADCAST_TOO_LONG)
         return settings.WAITING_FOR_BROADCAST_TEXT
 
@@ -359,7 +360,7 @@ async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) 
     return text
 
 
-async def _send_broadcast(text: str, bot, users: list) -> dict:
+async def _send_broadcast(text: str, bot: object, users: list) -> dict:
     """
     Execute broadcast message to all users with rate limiting.
 
@@ -387,11 +388,11 @@ async def _send_broadcast(text: str, bot, users: list) -> dict:
         except (NetworkError, TimedOut):
             # Temporary network error - don't delete user
             failed += 1
-            logger.error(f"Failed to send to {user.bot_user_id}: network error")
-        except Exception as e:
+            logger.exception(f"Failed to send to {user.bot_user_id}: network error")
+        except Exception:
             # Other errors
             failed += 1
-            logger.error(f"Failed to send to {user.bot_user_id}: {e}")
+            logger.exception(f"Failed to send to {user.bot_user_id}")
 
         # Rate limiting: 27 messages per second = ~37ms delay
         if sent + failed + blocked < len(users):  # Don't sleep after last message

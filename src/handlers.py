@@ -80,7 +80,7 @@ async def stations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     else:
         bot_message = await update.message.reply_text(
             messages.CHOICE_STATION,
-            reply_markup=keyboards.STATIONS_REPLY_MARKUP,
+            reply_markup=keyboards.get_stations_reply_markup(),
         )
 
         if context.chat_data is not None:
@@ -102,7 +102,7 @@ async def directions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     from_station_id = int(query.data or "-1")
     command = context.chat_data.get("command", "undefined")
 
-    if to_station_id := keyboards.END_STATION_DIRECTION.get(from_station_id):
+    if to_station_id := keyboards.get_end_station_direction().get(from_station_id):
         if bot_commands.SCHEDULE in command:
             await _send_time_to_train(update, from_station_id, to_station_id)
         if bot_commands.ADD_FAVORITE in command:
@@ -113,7 +113,7 @@ async def directions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.chat_data["from_station_id"] = from_station_id
     await query.edit_message_text(
         text=messages.CHOICE_DIRECTION,
-        reply_markup=keyboards.DIRECTION_REPLY_MARKUP,
+        reply_markup=keyboards.get_direction_reply_markup(),
     )
     return settings.FINAL_STAGE
 

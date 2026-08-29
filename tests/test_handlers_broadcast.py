@@ -1,17 +1,22 @@
 """Tests for broadcast command handlers."""
 
-import sys
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import (
+    AsyncMock,
+    MagicMock,
+    Mock,
+)
 
 import pytest
-from telegram import Message, Update, User
+from telegram import (
+    InlineKeyboardMarkup,
+    Message,
+    Update,
+    User,
+)
 from telegram.ext import CallbackContext, ConversationHandler
 
-# Mock keyboards module before any imports
-sys.modules["src.keyboards"] = MagicMock()
-
-from src import handlers, messages  # noqa: E402
-from src.config import settings  # noqa: E402
+from src import handlers, messages
+from src.config import settings
 
 
 @pytest.fixture
@@ -142,13 +147,16 @@ async def test_broadcast_receive_text_success(
     with patch("src.handlers.db.select_all_users", new=AsyncMock(return_value=mock_db_users)):
         result = await handlers.broadcast_receive_text(update_mock, context_mock)
 
-    # Check that preview was sent
+    # Check that preview was sent with the real confirmation keyboard
     args = update_mock.message.reply_text.call_args
     assert "Предпросмотр рассылки" in args[0][0]
     assert "2" in args[0][0]  # 2 recipients
     assert "Test broadcast message" in args[0][0]
     assert args[1]["parse_mode"] == "HTML"
-    assert args[1]["reply_markup"] is not None
+    reply_markup = args[1]["reply_markup"]
+    assert isinstance(reply_markup, InlineKeyboardMarkup)
+    button_datas = [btn.callback_data for row in reply_markup.inline_keyboard for btn in row]
+    assert button_datas == ["broadcast_confirm", "broadcast_cancel"]
 
     # Check that text was saved
     assert context_mock.chat_data["broadcast_text"] == "Test broadcast message"
@@ -183,7 +191,7 @@ async def test_broadcast_confirm_success(
     update_mock: Mock, context_mock: Mock, developer_id: int
 ) -> None:
     """Test successful broadcast confirmation."""
-    from unittest.mock import AsyncMock, patch, MagicMock
+    from unittest.mock import AsyncMock, MagicMock, patch
 
     update_mock.effective_user.id = developer_id
     update_mock.callback_query = MagicMock()
@@ -210,7 +218,7 @@ async def test_broadcast_confirm_success(
 @pytest.mark.asyncio
 async def test_send_broadcast_all_success(mock_db_users: list) -> None:
     """Test sending broadcast to all users successfully."""
-    from unittest.mock import AsyncMock, patch, MagicMock
+    from unittest.mock import MagicMock, patch
 
     # Mock bot.send_message to succeed
     async def mock_send_message(*args: object, **kwargs: object) -> MagicMock:
@@ -234,7 +242,8 @@ async def test_send_broadcast_all_success(mock_db_users: list) -> None:
 @pytest.mark.asyncio
 async def test_send_broadcast_with_blocked_user(mock_db_users: list) -> None:
     """Test sending broadcast when one user blocked the bot."""
-    from unittest.mock import AsyncMock, patch, MagicMock
+    from unittest.mock import AsyncMock, MagicMock, patch
+
     from telegram.error import Forbidden
 
     # Mock bot.send_message to raise Forbidden for first user
@@ -269,7 +278,8 @@ async def test_send_broadcast_with_blocked_user(mock_db_users: list) -> None:
 @pytest.mark.asyncio
 async def test_send_broadcast_with_network_error(mock_db_users: list) -> None:
     """Test sending broadcast when network error occurs."""
-    from unittest.mock import AsyncMock, patch, MagicMock
+    from unittest.mock import AsyncMock, MagicMock, patch
+
     from telegram.error import NetworkError
 
     # Mock bot.send_message to raise NetworkError for first user

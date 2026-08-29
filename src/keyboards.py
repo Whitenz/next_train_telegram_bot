@@ -1,28 +1,52 @@
+from functools import lru_cache
+
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from .stations import get_stations_dict
 
-# Клавиатура с набором кнопок с названием станций
-STATIONS_KEYBOARD = [
-    [InlineKeyboardButton(station_name, callback_data=station_id)]
-    for station_id, station_name in get_stations_dict().items()
-]
-STATIONS_REPLY_MARKUP = InlineKeyboardMarkup(STATIONS_KEYBOARD)
 
-# Клавиатура с набором кнопок конечных станций-направлений
-FIRST_STATION_BUTTON = STATIONS_KEYBOARD[0][0]
-LAST_STATION_BUTTON = STATIONS_KEYBOARD[-1][0]
-DIRECTION_KEYBOARD = [[FIRST_STATION_BUTTON, LAST_STATION_BUTTON]]
-DIRECTION_REPLY_MARKUP = InlineKeyboardMarkup(DIRECTION_KEYBOARD)
+@lru_cache(maxsize=1)
+def get_stations_keyboard() -> list[list[InlineKeyboardButton]]:
+    """Клавиатура с набором кнопок с названием станций.
 
-# Словарь для выбора направления на конечных станциях, где 'from_station' ключ,
-# а 'to_station' значение (добавлен, т.к. нет смысла выбирать пользователю)
-END_STATION_DIRECTION = {
-    FIRST_STATION_BUTTON.callback_data: LAST_STATION_BUTTON.callback_data,
-    LAST_STATION_BUTTON.callback_data: FIRST_STATION_BUTTON.callback_data,
-}
+    Собирается при первом обращении, чтобы не делать запрос к БД в момент импорта модуля.
+    """
+    return [
+        [InlineKeyboardButton(station_name, callback_data=str(station_id))]
+        for station_id, station_name in get_stations_dict().items()
+    ]
 
-# Клавиатура подтверждения рассылки
+
+@lru_cache(maxsize=1)
+def get_stations_reply_markup() -> InlineKeyboardMarkup:
+    """Разметка клавиатуры выбора станции отправления."""
+    return InlineKeyboardMarkup(get_stations_keyboard())
+
+
+@lru_cache(maxsize=1)
+def get_direction_reply_markup() -> InlineKeyboardMarkup:
+    """Разметка клавиатуры с набором кнопок конечных станций-направлений."""
+    stations_keyboard = get_stations_keyboard()
+    first_station_button = stations_keyboard[0][0]
+    last_station_button = stations_keyboard[-1][0]
+    return InlineKeyboardMarkup([[first_station_button, last_station_button]])
+
+
+@lru_cache(maxsize=1)
+def get_end_station_direction() -> dict[int, int]:
+    """Словарь для выбора направления на конечных станциях, где 'from_station' ключ,
+    а 'to_station' значение (добавлен, т.к. нет смысла выбирать пользователю).
+    """
+    station_ids = list(get_stations_dict())
+    first_station_id = station_ids[0]
+    last_station_id = station_ids[-1]
+    return {
+        first_station_id: last_station_id,
+        last_station_id: first_station_id,
+    }
+
+
+# Клавиатура подтверждения рассылки (не зависит от БД, поэтому остаётся константой)
 BROADCAST_CONFIRM_MARKUP = InlineKeyboardMarkup(
     [
         [

@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from warnings import filterwarnings
 
 from telegram import Bot, Update
-from telegram.constants import ParseMode
+from telegram.constants import MessageLimit, ParseMode
 from telegram.error import Forbidden, NetworkError, TimedOut
 from telegram.ext import (
     CallbackQueryHandler,
@@ -233,12 +233,6 @@ async def broadcast_receive_text(update: Update, context: ContextTypes.DEFAULT_T
 
     text = update.message.text or ""
 
-    # Validate text length
-    max_message_length = 4096
-    if len(text) > max_message_length:
-        await update.message.reply_text(messages.BROADCAST_TOO_LONG)
-        return settings.WAITING_FOR_BROADCAST_TEXT
-
     # Validate text not empty
     if not text.strip():
         await update.message.reply_text(messages.BROADCAST_EMPTY)
@@ -256,6 +250,14 @@ async def broadcast_receive_text(update: Update, context: ContextTypes.DEFAULT_T
         recipients=recipient_count,
         text=html.escape(text),
     )
+
+    # Telegram ограничивает длину сообщения 4096 UTF-16 code units (эмодзи
+    # считаются за два), а шапка превью добавляет к тексту служебные символы.
+    preview_length = len(preview_text.encode("utf-16-le")) // 2
+    if preview_length > MessageLimit.MAX_TEXT_LENGTH:
+        await update.message.reply_text(messages.BROADCAST_TOO_LONG)
+        return settings.WAITING_FOR_BROADCAST_TEXT
+
     await update.message.reply_text(
         preview_text,
         parse_mode=ParseMode.HTML,

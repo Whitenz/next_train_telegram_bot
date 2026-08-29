@@ -165,6 +165,39 @@ async def test_broadcast_receive_text_success(
 
 
 @pytest.mark.asyncio
+async def test_broadcast_receive_text_rejects_text_filling_whole_limit(
+    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list
+) -> None:
+    """Текст ровно в 4096 символов отклоняется: превью добавляет служебную шапку."""
+    update_mock.effective_user.id = developer_id
+    update_mock.message.text = "a" * 4096
+    update_mock.message.reply_text.return_value = None
+
+    with patch("src.handlers.db.select_all_users", new=AsyncMock(return_value=mock_db_users)):
+        result = await handlers.broadcast_receive_text(update_mock, context_mock)
+
+    update_mock.message.reply_text.assert_called_once_with(messages.BROADCAST_TOO_LONG)
+    assert result == settings.WAITING_FOR_BROADCAST_TEXT
+
+
+@pytest.mark.asyncio
+async def test_broadcast_receive_text_rejects_emoji_heavy_text(
+    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list
+) -> None:
+    """Эмодзи-текст отклоняется по UTF-16 лимиту, а не по числу code points."""
+    update_mock.effective_user.id = developer_id
+    # 2100 эмодзи = 2100 code points, но 4200 UTF-16 code units.
+    update_mock.message.text = "😀" * 2100
+    update_mock.message.reply_text.return_value = None
+
+    with patch("src.handlers.db.select_all_users", new=AsyncMock(return_value=mock_db_users)):
+        result = await handlers.broadcast_receive_text(update_mock, context_mock)
+
+    update_mock.message.reply_text.assert_called_once_with(messages.BROADCAST_TOO_LONG)
+    assert result == settings.WAITING_FOR_BROADCAST_TEXT
+
+
+@pytest.mark.asyncio
 async def test_broadcast_receive_text_escapes_html(
     update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list
 ) -> None:

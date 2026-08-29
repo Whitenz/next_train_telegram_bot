@@ -4,10 +4,12 @@ from unittest.mock import (
     AsyncMock,
     MagicMock,
     Mock,
+    patch,
 )
 
 import pytest
 from telegram import (
+    CallbackQuery,
     InlineKeyboardMarkup,
     Message,
     Update,
@@ -191,24 +193,24 @@ async def test_broadcast_confirm_success(
     update_mock: Mock, context_mock: Mock, developer_id: int
 ) -> None:
     """Test successful broadcast confirmation."""
-    from unittest.mock import AsyncMock, MagicMock, patch
-
     update_mock.effective_user.id = developer_id
-    update_mock.callback_query = MagicMock()
-    update_mock.callback_query.from_user.id = developer_id
-    update_mock.callback_query.data = "broadcast_confirm"
-    update_mock.callback_query.answer = AsyncMock()
-    update_mock.callback_query.edit_message_text = AsyncMock()
-    update_mock.callback_query.bot = MagicMock()
+    # spec=CallbackQuery не даст сфабриковать несуществующие атрибуты:
+    # у CallbackQuery в PTB 20.x нет публичного .bot, есть только context.bot.
+    callback_query = Mock(spec=CallbackQuery)
+    callback_query.data = "broadcast_confirm"
+    callback_query.answer = AsyncMock()
+    callback_query.edit_message_text = AsyncMock()
+    update_mock.callback_query = callback_query
     context_mock.chat_data = {"broadcast_text": "Test message"}
+    context_mock.bot = MagicMock()
 
     # Mock the send_broadcast function
     mock_result = {"sent": 2, "failed": 0, "blocked": 0}
     with patch("src.handlers._send_broadcast", new=AsyncMock(return_value=mock_result)):
         result = await handlers.broadcast_confirm(update_mock, context_mock)
 
-    update_mock.callback_query.answer.assert_called_once()
-    args = update_mock.callback_query.edit_message_text.call_args
+    callback_query.answer.assert_called_once()
+    args = callback_query.edit_message_text.call_args
     assert "Рассылка завершена" in args[0][0]
     assert "Отправлено: 2" in args[0][0]
     assert context_mock.chat_data == {}

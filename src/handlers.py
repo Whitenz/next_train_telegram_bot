@@ -4,9 +4,10 @@ import html
 import json
 import logging
 import traceback
+from collections.abc import Sequence
 from warnings import filterwarnings
 
-from telegram import Update
+from telegram import Bot, Update
 from telegram.constants import ParseMode
 from telegram.error import Forbidden, NetworkError, TimedOut
 from telegram.ext import (
@@ -27,6 +28,7 @@ from . import (
 )
 from .config import settings
 from .decorators import write_log
+from .models import BotUser
 from .stations import get_stations_dict
 from .utils import metro_is_closed
 
@@ -284,7 +286,7 @@ async def broadcast_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     # Execute broadcast
     text = context.chat_data.get("broadcast_text", "")
     users = await db.select_all_users()
-    result = await _send_broadcast(text, query.bot, users)
+    result = await _send_broadcast(text, context.bot, users)
 
     # Show report
     report_text = messages.BROADCAST_REPORT.format(
@@ -360,7 +362,7 @@ async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) 
     return text
 
 
-async def _send_broadcast(text: str, bot: object, users: list) -> dict:
+async def _send_broadcast(text: str, bot: Bot, users: Sequence[BotUser]) -> dict[str, int]:
     """
     Execute broadcast message to all users with rate limiting.
 

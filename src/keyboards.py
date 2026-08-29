@@ -2,6 +2,7 @@ from functools import lru_cache
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
+from . import bot_commands
 from .stations import get_stations_dict
 
 
@@ -50,8 +51,8 @@ def get_end_station_direction() -> dict[int, int]:
 BROADCAST_CONFIRM_MARKUP = InlineKeyboardMarkup(
     [
         [
-            InlineKeyboardButton("✅ Отправить", callback_data="broadcast_confirm"),
-            InlineKeyboardButton("❌ Отмена", callback_data="broadcast_cancel"),
+            InlineKeyboardButton("✅ Отправить", callback_data=bot_commands.BROADCAST_CONFIRM_CALLBACK),
+            InlineKeyboardButton("❌ Отмена", callback_data=bot_commands.BROADCAST_CANCEL_CALLBACK),
         ]
     ]
 )

@@ -278,10 +278,14 @@ async def broadcast_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     await query.answer()
 
     # Check if cancelled
-    if query.data == "broadcast_cancel":
+    if query.data == bot_commands.BROADCAST_CANCEL_CALLBACK:
         context.chat_data.clear()
         await query.edit_message_text(messages.BROADCAST_CANCELLED)
         return ConversationHandler.END
+
+    # Чужой callback_data (например, кнопка станции) не должен запускать рассылку
+    if query.data != bot_commands.BROADCAST_CONFIRM_CALLBACK:
+        return settings.WAITING_FOR_BROADCAST_CONFIRM
 
     # Execute broadcast
     text = context.chat_data.get("broadcast_text", "")
@@ -437,11 +441,17 @@ CONVERSATION_HANDLER = ConversationHandler(
     conversation_timeout=settings.CONVERSATION_TIMEOUT,
 )
 
+BROADCAST_CALLBACK_PATTERN = (
+    rf"^{bot_commands.BROADCAST_CONFIRM_CALLBACK}$|^{bot_commands.BROADCAST_CANCEL_CALLBACK}$"
+)
+
 BROADCAST_CONVERSATION_HANDLER = ConversationHandler(
     entry_points=[CommandHandler(bot_commands.BROADCAST, broadcast)],
     states={
         settings.WAITING_FOR_BROADCAST_TEXT: [MessageHandler(filters.TEXT & ~filters.COMMAND, broadcast_receive_text)],
-        settings.WAITING_FOR_BROADCAST_CONFIRM: [CallbackQueryHandler(broadcast_confirm)],
+        settings.WAITING_FOR_BROADCAST_CONFIRM: [
+            CallbackQueryHandler(broadcast_confirm, pattern=BROADCAST_CALLBACK_PATTERN),
+        ],
         ConversationHandler.TIMEOUT: [
             MessageHandler(filters.ALL, timeout),
             CallbackQueryHandler(timeout),

@@ -8,6 +8,8 @@ from unittest.mock import (
 )
 
 import pytest
+from src import handlers, messages
+from src.config import settings
 from telegram import (
     CallbackQuery,
     InlineKeyboardMarkup,
@@ -16,9 +18,6 @@ from telegram import (
     User,
 )
 from telegram.ext import CallbackContext, ConversationHandler
-
-from src import handlers, messages
-from src.config import settings
 
 
 @pytest.fixture
@@ -234,6 +233,27 @@ async def test_broadcast_confirm_success(
     assert "Отправлено: 2" in args[0][0]
     assert context_mock.chat_data == {}
     assert result == ConversationHandler.END
+
+
+@pytest.mark.asyncio
+async def test_broadcast_confirm_ignores_foreign_callback(
+    update_mock: Mock, context_mock: Mock, developer_id: int
+) -> None:
+    """Чужой callback_data (например, кнопка станции) не запускает рассылку."""
+    update_mock.effective_user.id = developer_id
+    callback_query = Mock(spec=CallbackQuery)
+    callback_query.data = "1"  # кнопка выбора станции из другой клавиатуры
+    callback_query.answer = AsyncMock()
+    callback_query.edit_message_text = AsyncMock()
+    update_mock.callback_query = callback_query
+    context_mock.chat_data = {"broadcast_text": "Test message"}
+    context_mock.bot = MagicMock()
+
+    with patch("src.handlers._send_broadcast", new=AsyncMock()) as mock_send:
+        result = await handlers.broadcast_confirm(update_mock, context_mock)
+
+    mock_send.assert_not_called()
+    assert result == settings.WAITING_FOR_BROADCAST_CONFIRM
 
 
 @pytest.mark.asyncio

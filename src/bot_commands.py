@@ -8,3 +8,7 @@ ADD_FAVORITE = "add_favorite"
 CLEAR_FAVORITES = "clear_favorites"
 DOWNLOAD_LOG = "download_log"
 BROADCAST = "broadcast"
+
+# callback_data кнопок подтверждения рассылки
+BROADCAST_CONFIRM_CALLBACK = "broadcast_confirm"
+BROADCAST_CANCEL_CALLBACK = "broadcast_cancel"

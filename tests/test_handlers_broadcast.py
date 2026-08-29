@@ -166,6 +166,25 @@ async def test_broadcast_receive_text_success(
 
 
 @pytest.mark.asyncio
+async def test_broadcast_receive_text_escapes_html(
+    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list
+) -> None:
+    """Спецсимволы HTML в тексте рассылки экранируются в превью."""
+    update_mock.effective_user.id = developer_id
+    update_mock.message.text = "Скидка <50% для R&D"
+    update_mock.message.reply_text.return_value = None
+
+    with patch("src.handlers.db.select_all_users", new=AsyncMock(return_value=mock_db_users)):
+        await handlers.broadcast_receive_text(update_mock, context_mock)
+
+    args = update_mock.message.reply_text.call_args
+    assert "Скидка &lt;50% для R&amp;D" in args[0][0]
+    assert "<50%" not in args[0][0]
+    # Оригинальный текст сохраняется без экранирования: доставка уходит как plain text.
+    assert context_mock.chat_data["broadcast_text"] == "Скидка <50% для R&D"
+
+
+@pytest.mark.asyncio
 async def test_broadcast_confirm_cancel(
     update_mock: Mock, context_mock: Mock, developer_id: int
 ) -> None:

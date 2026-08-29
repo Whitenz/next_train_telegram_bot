@@ -251,10 +251,10 @@ async def broadcast_receive_text(update: Update, context: ContextTypes.DEFAULT_T
     # Save text to chat_data
     context.chat_data["broadcast_text"] = text
 
-    # Show preview
+    # Show preview: текст экранируется, т.к. превью отправляется с parse_mode=HTML.
     preview_text = messages.BROADCAST_PREVIEW.format(
         recipients=recipient_count,
-        text=text,
+        text=html.escape(text),
     )
     await update.message.reply_text(
         preview_text,

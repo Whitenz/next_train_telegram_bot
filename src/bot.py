@@ -1,4 +1,5 @@
 from telegram.ext import (
+    Application,
     ApplicationBuilder,
     CommandHandler,
     MessageHandler,
@@ -16,13 +17,14 @@ COMMAND_HANDLERS = {
     bot_commands.HELP: handlers.help_handler,
     bot_commands.FAVORITES: handlers.favorites,
     bot_commands.CLEAR_FAVORITES: handlers.clear_favorites,
-    bot_commands.BROADCAST: handlers.broadcast,
+    # /broadcast не регистрируется здесь: команда является entry point
+    # BROADCAST_CONVERSATION_HANDLER, а в группе 0 срабатывает только первый
+    # совпавший обработчик — дубль похоронил бы диалог рассылки.
 }
 
 
-def start_bot() -> None:
-    """Главная функция, стартующая бота."""
-    application = ApplicationBuilder().token(settings.BOT_TOKEN).build()
+def register_handlers(application: Application) -> None:
+    """Регистрирует обработчики команд и диалогов в приложении бота."""
     for command, callback in COMMAND_HANDLERS.items():
         application.add_handler(CommandHandler(command, callback))
     application.add_handler(
@@ -36,4 +38,10 @@ def start_bot() -> None:
     application.add_handler(handlers.BROADCAST_CONVERSATION_HANDLER)
     application.add_handler(MessageHandler(filters.ALL, handlers.wrong_command))
     application.add_error_handler(handlers.error_handler)
+
+
+def start_bot() -> None:
+    """Главная функция, стартующая бота."""
+    application = ApplicationBuilder().token(settings.BOT_TOKEN).build()
+    register_handlers(application)
     application.run_polling()

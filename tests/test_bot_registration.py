@@ -48,7 +48,7 @@ async def test_broadcast_command_starts_conversation(
         replies.append(text)
 
     async def fake_get_me(self: Bot, *args: object, **kwargs: object) -> User:
-        # Настоящий get_me кэширует результат в _bot_user — фейк повторяет это поведение.
+        """Настоящий get_me кэширует результат в _bot_user — фейк повторяет это поведение."""
         self._bot_user = User(id=1, is_bot=True, first_name="Bot", username="test_bot")
         return self._bot_user
 
@@ -64,5 +64,4 @@ async def test_broadcast_command_starts_conversation(
         )
 
     assert replies[0] == messages.BROADCAST_TEXT
-    # Если состояние диалога не создано, текст уйдёт в wrong_command с сообщением WRONG.
-    assert "Предпросмотр рассылки" in replies[1]
+    assert "Предпросмотр рассылки" in replies[1], "Без состояния диалога текст уйдёт в wrong_command с WRONG"

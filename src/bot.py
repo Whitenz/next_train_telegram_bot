@@ -19,14 +19,16 @@ COMMAND_HANDLERS = {
     bot_commands.HELP: handlers.help_handler,
     bot_commands.FAVORITES: handlers.favorites,
     bot_commands.CLEAR_FAVORITES: handlers.clear_favorites,
-    # /broadcast не регистрируется здесь: команда является entry point
-    # BROADCAST_CONVERSATION_HANDLER, а в группе 0 срабатывает только первый
-    # совпавший обработчик — дубль похоронил бы диалог рассылки.
 }
 
 
 def register_handlers(application: Application[t.Any, t.Any, t.Any, t.Any, t.Any, t.Any]) -> None:
-    """Регистрирует обработчики команд и диалогов в приложении бота."""
+    """Регистрирует обработчики команд и диалогов в приложении бота.
+
+    /broadcast не входит в COMMAND_HANDLERS: команда является entry point
+    BROADCAST_CONVERSATION_HANDLER, а в группе 0 срабатывает только первый
+    совпавший обработчик — дубль похоронил бы диалог рассылки.
+    """
     for command, callback in COMMAND_HANDLERS.items():
         application.add_handler(CommandHandler(command, callback))
     application.add_handler(
@@ -43,11 +45,13 @@ def register_handlers(application: Application[t.Any, t.Any, t.Any, t.Any, t.Any
 
 
 def start_bot() -> None:
-    """Главная функция, стартующая бота."""
+    """Главная функция, стартующая бота.
+
+    PROXY_URL применяется и к обычным API-запросам (.proxy()), и к long polling
+    getUpdates (.get_updates_proxy()): в PTB это два независимых HTTP-клиента.
+    """
     builder = ApplicationBuilder().token(settings.BOT_TOKEN)
     if settings.PROXY_URL:
-        # Важно: .proxy() применяется только к обычным API-запросам, а long polling
-        # getUpdates ходит через отдельный request — нужен .get_updates_proxy().
         builder = builder.proxy(settings.PROXY_URL).get_updates_proxy(settings.PROXY_URL)
     application = builder.build()
     register_handlers(application)

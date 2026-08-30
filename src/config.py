@@ -9,7 +9,6 @@ import pydantic_settings as ps
 
 
 class Settings(ps.BaseSettings):
-    # env variables
     BOT_TOKEN: str
     DEVELOPER_TG_ID: int
     DB_DRIVERNAME_SYNC: str
@@ -21,18 +20,17 @@ class Settings(ps.BaseSettings):
     DB_NAME: str
     TZ: str
     MODE: str
-    # Прокси для доступа к Telegram API (нужен на хостах без прямого доступа).
-    # Применяется и к обычным запросам, и к long polling getUpdates.
-    PROXY_URL: str | None = None
+    PROXY_URL: str | None = p.Field(
+        default=None,
+        description="Прокси для доступа к Telegram API на хостах без прямого доступа;"
+        " применяется и к обычным запросам, и к long polling getUpdates.",
+    )
 
-    # path variables
     BASE_DIR: p.DirectoryPath = Path(__file__).parents[1]
 
-    # logger params
     LOG_FILENAME: Path = BASE_DIR / "logs" / "bot.log"
     LOGGER_TEXT: str = 'Пользователь {first_name} ({id}) отправил команду "{command}"'
 
-    # bot params
     OPEN_TIME_METRO: datetime.time = datetime.time(hour=5, minute=30)
     CLOSE_TIME_METRO: datetime.time = datetime.time(hour=0, minute=30)
     CHOICE_DIRECTION: int = p.Field(default=0, ge=0)

@@ -47,7 +47,6 @@ def get_end_station_direction() -> dict[int, int]:
     }
 
 
-# Клавиатура подтверждения рассылки (не зависит от БД, поэтому остаётся константой)
 BROADCAST_CONFIRM_MARKUP = InlineKeyboardMarkup(
     [
         [

@@ -55,13 +55,11 @@ def context_mock() -> Mock:
 @pytest.mark.asyncio
 async def test_broadcast_unauthorized_user(update_mock: Mock, context_mock: Mock) -> None:
     """Test that unauthorized users cannot access broadcast command."""
-    # Mock a non-developer user
-    update_mock.effective_user.id = 12345  # Not the developer
+    update_mock.effective_user.id = 12345
     update_mock.message.reply_text.return_value = None
 
     result = await handlers.broadcast(update_mock, context_mock)
 
-    # Should send forbidden message and end conversation
     update_mock.message.reply_text.assert_called_once_with(messages.BROADCAST_FORBIDDEN)
     assert result == ConversationHandler.END
 
@@ -69,13 +67,11 @@ async def test_broadcast_unauthorized_user(update_mock: Mock, context_mock: Mock
 @pytest.mark.asyncio
 async def test_broadcast_authorized_user(update_mock: Mock, context_mock: Mock, developer_id: int) -> None:
     """Test that authorized developer can access broadcast command."""
-    # Mock the developer user
     update_mock.effective_user.id = developer_id
     update_mock.message.reply_text.return_value = None
 
     result = await handlers.broadcast(update_mock, context_mock)
 
-    # Should prompt for text and wait
     update_mock.message.reply_text.assert_called_once_with(messages.BROADCAST_TEXT)
     assert result == settings.WAITING_FOR_BROADCAST_TEXT
 
@@ -105,7 +101,7 @@ def mock_db_users() -> list[BotUser]:
 async def test_broadcast_receive_text_too_long(update_mock: Mock, context_mock: Mock, developer_id: int) -> None:
     """Test that too long text is rejected."""
     update_mock.effective_user.id = developer_id
-    update_mock.message.text = "x" * 5000  # Too long
+    update_mock.message.text = "x" * 5000
     update_mock.message.reply_text.return_value = None
 
     result = await handlers.broadcast_receive_text(update_mock, context_mock)
@@ -136,14 +132,12 @@ async def test_broadcast_receive_text_success(
     update_mock.message.text = "Test broadcast message"
     update_mock.message.reply_text.return_value = None
 
-    # Mock db.select_all_users to return some users
     with patch("src.handlers.db.select_all_users", new=AsyncMock(return_value=mock_db_users)):
         result = await handlers.broadcast_receive_text(update_mock, context_mock)
 
-    # Check that preview was sent with the real confirmation keyboard
     args = update_mock.message.reply_text.call_args
     assert "Предпросмотр рассылки" in args[0][0]
-    assert "2" in args[0][0]  # 2 recipients
+    assert str(len(mock_db_users)) in args[0][0]
     assert "Test broadcast message" in args[0][0]
     assert args[1]["parse_mode"] == "HTML"
     reply_markup = args[1]["reply_markup"]
@@ -151,7 +145,6 @@ async def test_broadcast_receive_text_success(
     button_datas = [btn.callback_data for row in reply_markup.inline_keyboard for btn in row]
     assert button_datas == ["broadcast_confirm", "broadcast_cancel"]
 
-    # Check that text was saved
     assert context_mock.chat_data["broadcast_text"] == "Test broadcast message"
     assert result == settings.WAITING_FOR_BROADCAST_CONFIRM
 
@@ -176,9 +169,11 @@ async def test_broadcast_receive_text_rejects_text_filling_whole_limit(
 async def test_broadcast_receive_text_rejects_emoji_heavy_text(
     update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list[BotUser]
 ) -> None:
-    """Эмодзи-текст отклоняется по UTF-16 лимиту, а не по числу code points."""
+    """Эмодзи-текст отклоняется по UTF-16 лимиту, а не по числу code points.
+
+    2100 эмодзи = 2100 code points, но 4200 UTF-16 code units.
+    """
     update_mock.effective_user.id = developer_id
-    # 2100 эмодзи = 2100 code points, но 4200 UTF-16 code units.
     update_mock.message.text = "😀" * 2100
     update_mock.message.reply_text.return_value = None
 
@@ -204,8 +199,9 @@ async def test_broadcast_receive_text_escapes_html(
     args = update_mock.message.reply_text.call_args
     assert "Скидка &lt;50% для R&amp;D" in args[0][0]
     assert "<50%" not in args[0][0]
-    # Оригинальный текст сохраняется без экранирования: доставка уходит как plain text.
-    assert context_mock.chat_data["broadcast_text"] == "Скидка <50% для R&D"
+    assert context_mock.chat_data["broadcast_text"] == "Скидка <50% для R&D", (
+        "Оригинальный текст сохраняется без экранирования: доставка уходит как plain text"
+    )
 
 
 @pytest.mark.asyncio
@@ -229,10 +225,12 @@ async def test_broadcast_confirm_cancel(update_mock: Mock, context_mock: Mock, d
 
 @pytest.mark.asyncio
 async def test_broadcast_confirm_success(update_mock: Mock, context_mock: Mock, developer_id: int) -> None:
-    """Test successful broadcast confirmation."""
+    """Test successful broadcast confirmation.
+
+    Mock(spec=CallbackQuery) не даст сфабриковать несуществующие атрибуты:
+    у CallbackQuery в PTB 20.x нет публичного .bot, есть только context.bot.
+    """
     update_mock.effective_user.id = developer_id
-    # spec=CallbackQuery не даст сфабриковать несуществующие атрибуты:
-    # у CallbackQuery в PTB 20.x нет публичного .bot, есть только context.bot.
     callback_query = Mock(spec=CallbackQuery)
     callback_query.data = "broadcast_confirm"
     callback_query.answer = AsyncMock()
@@ -241,7 +239,6 @@ async def test_broadcast_confirm_success(update_mock: Mock, context_mock: Mock, 
     context_mock.chat_data = {"broadcast_text": "Test message"}
     context_mock.bot = MagicMock()
 
-    # Mock the send_broadcast function
     mock_result = {"sent": 2, "failed": 0, "blocked": 0}
     with patch("src.handlers._send_broadcast", new=AsyncMock(return_value=mock_result)):
         result = await handlers.broadcast_confirm(update_mock, context_mock)
@@ -290,7 +287,7 @@ async def test_broadcast_confirm_ignores_foreign_callback(
     """Чужой callback_data (например, кнопка станции) не запускает рассылку."""
     update_mock.effective_user.id = developer_id
     callback_query = Mock(spec=CallbackQuery)
-    callback_query.data = "1"  # кнопка выбора станции из другой клавиатуры
+    callback_query.data = "1"
     callback_query.answer = AsyncMock()
     callback_query.edit_message_text = AsyncMock()
     update_mock.callback_query = callback_query
@@ -326,11 +323,9 @@ async def test_broadcast_confirm_fails_fast_without_saved_text(
 async def test_send_broadcast_all_success(mock_db_users: list[BotUser]) -> None:
     """Test sending broadcast to all users successfully."""
 
-    # Mock bot.send_message to succeed
     async def mock_send_message(*args: object, **kwargs: object) -> MagicMock:
         return MagicMock()
 
-    # Mock asyncio.sleep to avoid delay
     async def mock_sleep(seconds: float) -> None:
         pass
 
@@ -347,8 +342,10 @@ async def test_send_broadcast_all_success(mock_db_users: list[BotUser]) -> None:
 
 @pytest.mark.asyncio
 async def test_send_broadcast_with_blocked_user(mock_db_users: list[BotUser]) -> None:
-    """Test sending broadcast when one user blocked the bot."""
-    # Mock bot.send_message to raise Forbidden for first user
+    """Test sending broadcast when one user blocked the bot.
+
+    Заблокировавшие удаляются одним batch-запросом после цикла отправки.
+    """
     call_count = 0
 
     async def mock_send_message(chat_id: int, *args: object, **kwargs: object) -> MagicMock:
@@ -364,14 +361,12 @@ async def test_send_broadcast_with_blocked_user(mock_db_users: list[BotUser]) ->
     mock_bot = MagicMock()
     mock_bot.send_message = mock_send_message
 
-    # Заблокировавшие удаляются одним batch-запросом после цикла отправки
     with (
         patch("asyncio.sleep", new=mock_sleep),
         patch("src.handlers.db.delete_users", new=AsyncMock(return_value=1)) as mock_delete,
     ):
         result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
 
-    # Check that blocked users were deleted in a single batch
     mock_delete.assert_called_once_with([111])
     assert result["sent"] == 1
     assert result["failed"] == 0
@@ -402,7 +397,6 @@ async def test_send_broadcast_survives_delete_users_failure(mock_db_users: list[
     ):
         result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
 
-    # Рассылка дошла до конца и вернула отчёт, несмотря на сбой удаления
     assert result["sent"] == 1
     assert result["blocked"] == 1
     assert result["failed"] == 0
@@ -410,8 +404,10 @@ async def test_send_broadcast_survives_delete_users_failure(mock_db_users: list[
 
 @pytest.mark.asyncio
 async def test_send_broadcast_with_network_error(mock_db_users: list[BotUser]) -> None:
-    """Test sending broadcast when network error occurs."""
-    # Mock bot.send_message to raise NetworkError for first user
+    """Test sending broadcast when network error occurs.
+
+    Сетевая ошибка — временная: пользователь при ней не удаляется.
+    """
     call_count = 0
 
     async def mock_send_message(chat_id: int, *args: object, **kwargs: object) -> MagicMock:
@@ -433,7 +429,6 @@ async def test_send_broadcast_with_network_error(mock_db_users: list[BotUser]) -
     ):
         result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
 
-    # User should NOT be deleted for network errors
     mock_delete.assert_not_called()
     assert result["sent"] == 1
     assert result["failed"] == 1

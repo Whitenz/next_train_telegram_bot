@@ -51,11 +51,9 @@ class TestBotUser:
     @pytest.mark.asyncio
     async def test_select_all_users(self, async_session_fixture: AsyncSession) -> None:
         """Test that we can select all users from database."""
-        # Get initial count
         initial_users = await db.select_all_users()
         initial_count = len(initial_users)
 
-        # Create some test users
         user1 = models.BotUser(
             bot_user_id=111,
             first_name="Test1",
@@ -74,7 +72,6 @@ class TestBotUser:
         async_session_fixture.add(user2)
         await async_session_fixture.commit()
 
-        # Test the function
         users = await db.select_all_users()
 
         assert len(users) == initial_count + 2
@@ -85,7 +82,6 @@ class TestBotUser:
     @pytest.mark.asyncio
     async def test_delete_user(self, async_session_fixture: AsyncSession) -> None:
         """Test that we can delete a user from database."""
-        # Create a test user
         user = models.BotUser(
             bot_user_id=999,
             first_name="ToDelete",
@@ -96,28 +92,23 @@ class TestBotUser:
         async_session_fixture.add(user)
         await async_session_fixture.commit()
 
-        # Verify user exists
         users_before = await db.select_all_users()
         user_ids_before = [u.bot_user_id for u in users_before]
         assert 999 in user_ids_before
 
-        # Delete the user
         result = await db.delete_user(999)
         assert result is True
 
-        # Verify user is deleted
         users_after = await db.select_all_users()
         user_ids_after = [u.bot_user_id for u in users_after]
         assert 999 not in user_ids_after
 
-        # Try deleting non-existent user
         result2 = await db.delete_user(999)
         assert result2 is False
 
     @pytest.mark.asyncio
     async def test_delete_user_cascades_favorites(self, async_session_fixture: AsyncSession, populate_db: None) -> None:
         """Test that deleting a user cascades to their favorite routes."""
-        # Create a test user
         user = models.BotUser(
             bot_user_id=888,
             first_name="CascadeUser",
@@ -128,7 +119,6 @@ class TestBotUser:
         async_session_fixture.add(user)
         await async_session_fixture.commit()
 
-        # Create favorite routes for the user
         favorite1 = models.Favorite(
             bot_user_id=888,
             from_station_id=1,
@@ -143,23 +133,19 @@ class TestBotUser:
         async_session_fixture.add(favorite2)
         await async_session_fixture.commit()
 
-        # Verify favorites exist
         favorites_before = await async_session_fixture.execute(
             db.select(models.Favorite).where(models.Favorite.bot_user_id == 888)
         )
         favorites_count_before = len(favorites_before.scalars().all())
         assert favorites_count_before == 2, "User should have 2 favorite routes"
 
-        # Delete the user
         result = await db.delete_user(888)
         assert result is True, "User deletion should succeed"
 
-        # Verify user is deleted
         users_after = await db.select_all_users()
         user_ids_after = [u.bot_user_id for u in users_after]
         assert 888 not in user_ids_after, "User should be deleted"
 
-        # Verify favorites are cascade deleted
         favorites_after = await async_session_fixture.execute(
             db.select(models.Favorite).where(models.Favorite.bot_user_id == 888)
         )

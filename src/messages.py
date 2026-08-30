@@ -34,7 +34,6 @@ ERROR: str = (
     "<pre>{traceback_string}</pre>"
 )
 
-# Broadcast messages
 BROADCAST_TEXT: str = "Введите текст сообщения для рассылки:"
 BROADCAST_PREVIEW: str = (
     "✉ <b>Предпросмотр рассылки</b>\n\nПолучателей: {recipients}\n\nТекст сообщения:\n{text}\n\nПодтверждаете отправку?"

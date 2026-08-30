@@ -4,6 +4,7 @@ import typing as t
 from sqlalchemy import (
     URL,
     CursorResult,
+    Delete,
     Engine,
     asc,
     create_engine,
@@ -268,6 +269,19 @@ async def select_all_users(
         return list((await session.scalars(statement)).all())
 
 
+async def _delete_and_count(
+    statement: Delete,
+    session: AsyncSession,
+) -> int:
+    """Выполняет DML-удаление и возвращает количество затронутых строк.
+
+    Для DML-запросов execute возвращает CursorResult с rowcount.
+    """
+    result = t.cast("CursorResult[t.Any]", await session.execute(statement))
+    await session.commit()
+    return int(result.rowcount or 0)
+
+
 async def delete_user(
     user_id: int,
     current_session: async_sessionmaker[AsyncSession] = async_session,
@@ -284,10 +298,7 @@ async def delete_user(
     statement = delete(BotUser).where(BotUser.bot_user_id == user_id)
 
     async with current_session() as session:
-        # Для DML-запросов execute возвращает CursorResult с rowcount
-        result = t.cast("CursorResult[t.Any]", await session.execute(statement))
-        await session.commit()
-        return bool(result.rowcount)
+        return bool(await _delete_and_count(statement, session))
 
 
 async def delete_users(
@@ -309,7 +320,4 @@ async def delete_users(
     statement = delete(BotUser).where(BotUser.bot_user_id.in_(user_ids))
 
     async with current_session() as session:
-        # Для DML-запросов execute возвращает CursorResult с rowcount
-        result = t.cast("CursorResult[t.Any]", await session.execute(statement))
-        await session.commit()
-        return int(result.rowcount or 0)
+        return await _delete_and_count(statement, session)

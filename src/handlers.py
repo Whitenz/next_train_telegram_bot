@@ -213,7 +213,6 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await wrong_command(update, context)
         return ConversationHandler.END
 
-    # Check if user is authorized
     if update.effective_user.id != settings.DEVELOPER_TG_ID:
         await update.message.reply_text(messages.BROADCAST_FORBIDDEN)
         return ConversationHandler.END
@@ -227,34 +226,25 @@ async def broadcast_receive_text(update: Update, context: ContextTypes.DEFAULT_T
     """
     Этап диалога для получения текста рассылки.
     Проверяет валидность текста и показывает preview.
+    Сохраняет сообщение-превью в chat_data для обработчика таймаута.
     """
     if update.effective_user is None or update.message is None or context.chat_data is None:
         return ConversationHandler.END
 
     text = update.message.text or ""
 
-    # Validate text not empty
     if not text.strip():
         await update.message.reply_text(messages.BROADCAST_EMPTY)
         return settings.WAITING_FOR_BROADCAST_TEXT
 
-    # Get all users
     users = await db.select_all_users()
     recipient_count = len(users)
 
-    # Save text to chat_data
     context.chat_data["broadcast_text"] = text
 
-    # Show preview: текст экранируется, т.к. превью отправляется с parse_mode=HTML.
-    preview_text = messages.BROADCAST_PREVIEW.format(
-        recipients=recipient_count,
-        text=html.escape(text),
-    )
+    preview_text = _build_broadcast_preview(text, recipient_count)
 
-    # Telegram ограничивает длину сообщения 4096 UTF-16 code units (эмодзи
-    # считаются за два), а шапка превью добавляет к тексту служебные символы.
-    preview_length = len(preview_text.encode("utf-16-le")) // 2
-    if preview_length > MessageLimit.MAX_TEXT_LENGTH:
+    if _utf16_length(preview_text) > MessageLimit.MAX_TEXT_LENGTH:
         await update.message.reply_text(messages.BROADCAST_TOO_LONG)
         return settings.WAITING_FOR_BROADCAST_TEXT
 
@@ -263,7 +253,6 @@ async def broadcast_receive_text(update: Update, context: ContextTypes.DEFAULT_T
         parse_mode=ParseMode.HTML,
         reply_markup=keyboards.BROADCAST_CONFIRM_MARKUP,
     )
-    # Сохраняем сообщение-превью, чтобы обработчик таймаута мог его отредактировать
     context.chat_data["bot_message"] = bot_message
 
     return settings.WAITING_FOR_BROADCAST_CONFIRM
@@ -275,29 +264,27 @@ async def broadcast_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     Заключительный этап диалога команды /broadcast.
     Если получена отмена - отменяет рассылку.
     Если получено подтверждение - выполняет отправку.
+    Чужой callback_data (например, кнопка станции) игнорируется.
+    Отсутствие сохранённого текста приводит к KeyError — явный сбой
+    вместо тихой рассылки пустого сообщения.
     """
     if (query := update.callback_query) is None or context.chat_data is None:
         return ConversationHandler.END
 
     await query.answer()
 
-    # Check if cancelled
     if query.data == bot_commands.BROADCAST_CANCEL_CALLBACK:
         context.chat_data.clear()
         await query.edit_message_text(messages.BROADCAST_CANCELLED)
         return ConversationHandler.END
 
-    # Чужой callback_data (например, кнопка станции) не должен запускать рассылку
     if query.data != bot_commands.BROADCAST_CONFIRM_CALLBACK:
         return settings.WAITING_FOR_BROADCAST_CONFIRM
 
-    # Execute broadcast: прямой доступ — отсутствие текста должно падать явно,
-    # а не приводить к тихой рассылке пустого сообщения.
     text = context.chat_data["broadcast_text"]
     users = await db.select_all_users()
     result = await _send_broadcast(text, context.bot, users)
 
-    # Show report
     report_text = messages.BROADCAST_REPORT.format(
         sent=result["sent"],
         failed=result["failed"],
@@ -307,6 +294,26 @@ async def broadcast_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     context.chat_data.clear()
     return ConversationHandler.END
+
+
+def _build_broadcast_preview(text: str, recipient_count: int) -> str:
+    """Собирает текст предпросмотра рассылки.
+
+    Текст экранируется: предпросмотр отправляется с parse_mode=HTML.
+    """
+    return messages.BROADCAST_PREVIEW.format(
+        recipients=recipient_count,
+        text=html.escape(text),
+    )
+
+
+def _utf16_length(text: str) -> int:
+    """Длина строки в UTF-16 code units — в них Telegram меряет лимит сообщения.
+
+    Эмодзи считаются за два (суррогатная пара), а шапка предпросмотра
+    добавляет к тексту служебные символы.
+    """
+    return len(text.encode("utf-16-le")) // 2
 
 
 async def _send_time_to_train(
@@ -379,17 +386,26 @@ async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) 
     return text
 
 
+BROADCAST_SEND_INTERVAL_SECONDS = 1 / 27
+
+
 async def _send_broadcast(text: str, bot: Bot, users: Sequence[BotUser]) -> dict[str, int]:
     """
-    Execute broadcast message to all users with rate limiting.
+    Выполняет рассылку сообщения всем пользователям с ограничением скорости.
+
+    Отправки разнесены интервалом BROADCAST_SEND_INTERVAL_SECONDS (27 сообщений
+    в секунду — с запасом под лимит Telegram 30 msg/s). Пользователи, заблокировавшие
+    бота (Forbidden), удаляются одним batch-запросом после цикла отправки; сетевые
+    ошибки (NetworkError, TimedOut) считаются временными и к удалению не приводят.
+    Сбой удаления заблокировавших не обрывает рассылку — отчёт важнее.
 
     Args:
-        text: Message text to send.
-        bot: Telegram bot instance.
-        users: List of BotUser objects.
+        text: Текст сообщения.
+        bot: Инстанс бота Telegram.
+        users: Список пользователей BotUser.
 
     Returns:
-        Dictionary with keys: sent, failed, blocked.
+        Словарь с ключами: sent, failed, blocked.
     """
     sent = 0
     failed = 0
@@ -400,28 +416,22 @@ async def _send_broadcast(text: str, bot: Bot, users: Sequence[BotUser]) -> dict
             await bot.send_message(chat_id=user.bot_user_id, text=text)
             sent += 1
         except Forbidden:
-            # Пользователь заблокировал бота — удалим одним запросом после цикла
             blocked_ids.append(user.bot_user_id)
             logger.warning("User %s blocked bot, will be deleted from DB", user.bot_user_id)
         except (NetworkError, TimedOut):
-            # Временная сетевая ошибка — пользователя не удаляем.
-            # Без стека в логе: при сетевом сбое таких записей будет по одной на юзера.
             failed += 1
             logger.error("Failed to send to %s: network error", user.bot_user_id)  # noqa: TRY400
         except Exception:
-            # Other errors
             failed += 1
             logger.exception("Failed to send to %s", user.bot_user_id)
 
-        # Rate limiting: 27 сообщений в секунду ≈ задержка 37 мс между отправками
-        if i < len(users) - 1:  # Не спим после последнего сообщения
-            await asyncio.sleep(0.037)
+        if i < len(users) - 1:
+            await asyncio.sleep(BROADCAST_SEND_INTERVAL_SECONDS)
 
     if blocked_ids:
         try:
             await db.delete_users(blocked_ids)
         except Exception:
-            # Сбой удаления не должен обрывать отчёт по рассылке
             logger.exception("Failed to delete blocked users: %s", blocked_ids)
 
     return {"sent": sent, "failed": failed, "blocked": len(blocked_ids)}

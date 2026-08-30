@@ -316,8 +316,6 @@ async def test_send_broadcast_all_success(mock_db_users: list) -> None:
 @pytest.mark.asyncio
 async def test_send_broadcast_with_blocked_user(mock_db_users: list) -> None:
     """Test sending broadcast when one user blocked the bot."""
-    from unittest.mock import AsyncMock, MagicMock, patch
-
     from telegram.error import Forbidden
 
     # Mock bot.send_message to raise Forbidden for first user
@@ -336,17 +334,48 @@ async def test_send_broadcast_with_blocked_user(mock_db_users: list) -> None:
     mock_bot = MagicMock()
     mock_bot.send_message = mock_send_message
 
-    # Mock db.delete_user
+    # Заблокировавшие удаляются одним batch-запросом после цикла отправки
     with patch("asyncio.sleep", new=mock_sleep), patch(
-        "src.handlers.db.delete_user", new=AsyncMock(return_value=True)
+        "src.handlers.db.delete_users", new=AsyncMock(return_value=1)
     ) as mock_delete:
         result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
 
-    # Check that user was deleted
-    mock_delete.assert_called_once_with(111)
+    # Check that blocked users were deleted in a single batch
+    mock_delete.assert_called_once_with([111])
     assert result["sent"] == 1
     assert result["failed"] == 0
     assert result["blocked"] == 1
+
+
+@pytest.mark.asyncio
+async def test_send_broadcast_survives_delete_users_failure(mock_db_users: list) -> None:
+    """Сбой batch-удаления заблокировавших не прерывает рассылку."""
+    from telegram.error import Forbidden
+
+    call_count = 0
+
+    async def mock_send_message(chat_id: int, *args: object, **kwargs: object) -> MagicMock:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise Forbidden("User is deactivated")
+        return MagicMock()
+
+    async def mock_sleep(seconds: float) -> None:
+        pass
+
+    mock_bot = MagicMock()
+    mock_bot.send_message = mock_send_message
+
+    with patch("asyncio.sleep", new=mock_sleep), patch(
+        "src.handlers.db.delete_users", new=AsyncMock(side_effect=Exception("db down"))
+    ):
+        result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
+
+    # Рассылка дошла до конца и вернула отчёт, несмотря на сбой удаления
+    assert result["sent"] == 1
+    assert result["blocked"] == 1
+    assert result["failed"] == 0
 
 
 @pytest.mark.asyncio
@@ -373,7 +402,7 @@ async def test_send_broadcast_with_network_error(mock_db_users: list) -> None:
     mock_bot.send_message = mock_send_message
 
     with patch("asyncio.sleep", new=mock_sleep), patch(
-        "src.handlers.db.delete_user", new=AsyncMock(return_value=True)
+        "src.handlers.db.delete_users", new=AsyncMock(return_value=0)
     ) as mock_delete:
         result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
 

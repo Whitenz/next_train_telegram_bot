@@ -382,31 +382,37 @@ async def _send_broadcast(text: str, bot: Bot, users: Sequence[BotUser]) -> dict
     """
     sent = 0
     failed = 0
-    blocked = 0
+    blocked_ids: list[int] = []
 
-    for user in users:
+    for i, user in enumerate(users):
         try:
             await bot.send_message(chat_id=user.bot_user_id, text=text)
             sent += 1
         except Forbidden:
-            # User blocked the bot - delete from DB
-            await db.delete_user(user.bot_user_id)
-            blocked += 1
-            logger.warning(f"User {user.bot_user_id} blocked bot, deleted from DB")
+            # Пользователь заблокировал бота — удалим одним запросом после цикла
+            blocked_ids.append(user.bot_user_id)
+            logger.warning("User %s blocked bot, will be deleted from DB", user.bot_user_id)
         except (NetworkError, TimedOut):
-            # Temporary network error - don't delete user
+            # Временная сетевая ошибка — пользователя не удаляем
             failed += 1
-            logger.exception(f"Failed to send to {user.bot_user_id}: network error")
+            logger.error("Failed to send to %s: network error", user.bot_user_id)
         except Exception:
             # Other errors
             failed += 1
-            logger.exception(f"Failed to send to {user.bot_user_id}")
+            logger.exception("Failed to send to %s", user.bot_user_id)
 
-        # Rate limiting: 27 messages per second = ~37ms delay
-        if sent + failed + blocked < len(users):  # Don't sleep after last message
+        # Rate limiting: 27 сообщений в секунду ≈ задержка 37 мс между отправками
+        if i < len(users) - 1:  # Не спим после последнего сообщения
             await asyncio.sleep(0.037)
 
-    return {"sent": sent, "failed": failed, "blocked": blocked}
+    if blocked_ids:
+        try:
+            await db.delete_users(blocked_ids)
+        except Exception:
+            # Сбой удаления не должен обрывать отчёт по рассылке
+            logger.exception("Failed to delete blocked users: %s", blocked_ids)
+
+    return {"sent": sent, "failed": failed, "blocked": len(blocked_ids)}
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:

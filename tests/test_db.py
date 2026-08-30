@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 from src import (
     db,
     models,
@@ -164,3 +165,39 @@ class TestBotUser:
         )
         favorites_count_after = len(favorites_after.scalars().all())
         assert favorites_count_after == 0, "All favorite routes should be cascade deleted"
+
+    @pytest.mark.asyncio
+    async def test_delete_users(self, async_session_fixture: AsyncSession, populate_db: None) -> None:
+        """Test batch deletion of users by their ids."""
+        user1 = models.BotUser(
+            bot_user_id=777,
+            first_name="Batch1",
+            last_name=None,
+            username="batch1",
+            is_bot=False,
+        )
+        user2 = models.BotUser(
+            bot_user_id=778,
+            first_name="Batch2",
+            last_name=None,
+            username="batch2",
+            is_bot=False,
+        )
+        async_session_fixture.add(user1)
+        async_session_fixture.add(user2)
+        await async_session_fixture.commit()
+
+        deleted_count = await db.delete_users([777, 778])
+
+        assert deleted_count == 2
+        users_after = await db.select_all_users()
+        user_ids_after = [u.bot_user_id for u in users_after]
+        assert 777 not in user_ids_after
+        assert 778 not in user_ids_after
+
+    @pytest.mark.asyncio
+    async def test_delete_users_empty_list(self) -> None:
+        """Test that batch deletion with empty list deletes nothing."""
+        deleted_count = await db.delete_users([])
+
+        assert deleted_count == 0

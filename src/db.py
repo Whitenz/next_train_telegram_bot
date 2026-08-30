@@ -286,3 +286,27 @@ async def delete_user(
         result = await session.execute(statement)
         await session.commit()
         return result.rowcount > 0
+
+
+async def delete_users(
+    user_ids: t.Sequence[int],
+    current_session: async_sessionmaker[AsyncSession] = async_session,
+) -> int:
+    """Удаляет нескольких пользователей из таблицы 'bot_user' одним запросом.
+
+    Args:
+        user_ids: Коллекция Telegram user ID для удаления.
+        current_session: Фабрика для асинхронной сессии.
+
+    Returns:
+        Количество удалённых пользователей.
+    """
+    if not user_ids:
+        return 0
+
+    statement = delete(BotUser).where(BotUser.bot_user_id.in_(user_ids))
+
+    async with current_session() as session:
+        result = await session.execute(statement)
+        await session.commit()
+        return int(result.rowcount or 0)

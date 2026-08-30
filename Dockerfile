@@ -18,4 +18,6 @@ COPY src/ ./src/
 COPY main.py ./
 
 ENTRYPOINT []
-CMD ["uv", "run", "main.py"]
+# Зависимости уже установлены в образ (uv sync --frozen --no-dev),
+# поэтому запускаем python напрямую — без ре-синка venv и сети на старте.
+CMD ["python", "main.py"]

@@ -21,6 +21,9 @@ class Settings(ps.BaseSettings):
     DB_NAME: str
     TZ: str
     MODE: str
+    # Прокси для доступа к Telegram API (нужен на хостах без прямого доступа).
+    # Применяется и к обычным запросам, и к long polling getUpdates.
+    PROXY_URL: str | None = None
 
     # path variables
     BASE_DIR: p.DirectoryPath = Path(__file__).parents[1]

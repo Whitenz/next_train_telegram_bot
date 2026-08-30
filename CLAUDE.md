@@ -77,6 +77,7 @@ This is a Telegram bot that provides next train information for the Yekaterinbur
 - Uses `pydantic-settings` with `BaseSettings`
 - Loads from `.env.prod` then `.env.dev` — later files in the tuple override earlier ones (`.env.dev` wins where both define a variable)
 - Python is constrained to `>=3.12,<3.14`: asyncpg 0.28 has no wheels and fails to build on Python 3.14
+- Optional `PROXY_URL` routes both API calls and getUpdates polling through a proxy (hosts without direct Telegram access). Note: PTB's `.proxy()` alone does NOT cover long polling — `get_updates_proxy()` is applied too
 - All settings accessed via singleton `settings` instance
 - Key config: `MODE` (must be "test" for tests), `BOT_TOKEN`, database credentials
 

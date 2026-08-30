@@ -44,6 +44,11 @@ def register_handlers(application: Application[t.Any, t.Any, t.Any, t.Any, t.Any
 
 def start_bot() -> None:
     """Главная функция, стартующая бота."""
-    application = ApplicationBuilder().token(settings.BOT_TOKEN).build()
+    builder = ApplicationBuilder().token(settings.BOT_TOKEN)
+    if settings.PROXY_URL:
+        # Важно: .proxy() применяется только к обычным API-запросам, а long polling
+        # getUpdates ходит через отдельный request — нужен .get_updates_proxy().
+        builder = builder.proxy(settings.PROXY_URL).get_updates_proxy(settings.PROXY_URL)
+    application = builder.build()
     register_handlers(application)
     application.run_polling()

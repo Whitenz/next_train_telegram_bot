@@ -258,11 +258,13 @@ async def broadcast_receive_text(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text(messages.BROADCAST_TOO_LONG)
         return settings.WAITING_FOR_BROADCAST_TEXT
 
-    await update.message.reply_text(
+    bot_message = await update.message.reply_text(
         preview_text,
         parse_mode=ParseMode.HTML,
         reply_markup=keyboards.BROADCAST_CONFIRM_MARKUP,
     )
+    # Сохраняем сообщение-превью, чтобы обработчик таймаута мог его отредактировать
+    context.chat_data["bot_message"] = bot_message
 
     return settings.WAITING_FOR_BROADCAST_CONFIRM
 
@@ -346,6 +348,14 @@ async def timeout(_: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     if context.chat_data is not None and (bot_message := context.chat_data.pop("bot_message", None)):
         await bot_message.edit_text(messages.CONVERSATION_TIMEOUT)
+
+
+async def broadcast_timeout(_: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик таймаута диалога рассылки: уведомляет разработчика и очищает chat_data."""
+    if context.chat_data is not None:
+        if bot_message := context.chat_data.pop("bot_message", None):
+            await bot_message.edit_text(messages.BROADCAST_TIMEOUT)
+        context.chat_data.clear()
 
 
 async def get_text_with_time_to_train(from_station_id: int, to_station_id: int) -> str:
@@ -461,8 +471,8 @@ BROADCAST_CONVERSATION_HANDLER = ConversationHandler(
             CallbackQueryHandler(broadcast_confirm, pattern=BROADCAST_CALLBACK_PATTERN),
         ],
         ConversationHandler.TIMEOUT: [
-            MessageHandler(filters.ALL, timeout),
-            CallbackQueryHandler(timeout),
+            MessageHandler(filters.ALL, broadcast_timeout),
+            CallbackQueryHandler(broadcast_timeout),
         ],
     },
     fallbacks=[MessageHandler(filters.ALL, wrong_command)],

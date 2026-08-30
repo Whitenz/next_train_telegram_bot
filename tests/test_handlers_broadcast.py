@@ -269,6 +269,35 @@ async def test_broadcast_confirm_success(
 
 
 @pytest.mark.asyncio
+async def test_broadcast_receive_text_saves_bot_message(
+    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list
+) -> None:
+    """Preview-сообщение сохраняется в chat_data для обработки таймаута диалога."""
+    update_mock.effective_user.id = developer_id
+    update_mock.message.text = "Test broadcast message"
+    preview_message = MagicMock()
+    update_mock.message.reply_text.return_value = preview_message
+
+    with patch("src.handlers.db.select_all_users", new=AsyncMock(return_value=mock_db_users)):
+        await handlers.broadcast_receive_text(update_mock, context_mock)
+
+    assert context_mock.chat_data["bot_message"] is preview_message
+
+
+@pytest.mark.asyncio
+async def test_broadcast_timeout_edits_preview_and_clears_chat_data(context_mock: Mock) -> None:
+    """Таймаут broadcast-диалога уведомляет разработчика и очищает chat_data."""
+    bot_message = MagicMock()
+    bot_message.edit_text = AsyncMock()
+    context_mock.chat_data = {"broadcast_text": "Test", "bot_message": bot_message}
+
+    await handlers.broadcast_timeout(MagicMock(), context_mock)
+
+    bot_message.edit_text.assert_called_once_with(messages.BROADCAST_TIMEOUT)
+    assert context_mock.chat_data == {}
+
+
+@pytest.mark.asyncio
 async def test_broadcast_confirm_ignores_foreign_callback(
     update_mock: Mock, context_mock: Mock, developer_id: int
 ) -> None:

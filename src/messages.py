@@ -43,6 +43,7 @@ BROADCAST_PREVIEW: str = (
     "Подтверждаете отправку?"
 )
 BROADCAST_CANCELLED: str = "❌ Рассылка отменена"
+BROADCAST_TIMEOUT: str = "❌ Время на рассылку вышло, диалог завершён."
 BROADCAST_REPORT: str = (
     "✅ Рассылка завершена\n\n"
     "Отправлено: {sent}\n"

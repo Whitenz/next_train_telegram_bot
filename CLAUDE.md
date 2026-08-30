@@ -58,7 +58,7 @@ docker compose down
 - **Never run `docker compose down -v` on the server** — it deletes `db_vol` with all data
 - `data/*.sql` mounted into `/docker-entrypoint-initdb.d/` run only on an empty volume; existing data is never overwritten. Prod update: `docker compose pull && docker compose up -d`
 - db healthcheck verifies the `schedule` table has rows (not just `pg_isready`), so backend (`depends_on: service_healthy`) never starts against an empty DB after a failed first-time populate
-- DB port is published as `127.0.0.1:5433:5432` for running tests from the host only
+- The db port is not published at all; tests get their own postgres via testcontainers on `settings.DB_PORT`
 
 ## Architecture
 
@@ -106,7 +106,8 @@ This is a Telegram bot that provides next train information for the Yekaterinbur
 - Mismatched loops cause "Future attached to a different loop" errors with SQLAlchemy's async engine (asyncpg pool is loop-bound)
 
 **Database Initialization**
-- Tests require the `.env.test` file (loaded by `pytest-dotenv` with `env_override_existing_values = 1`; see `.env.test.example`) and a PostgreSQL instance reachable at `localhost:5433` with an existing `next_train_test` database: `docker compose up --wait -d db`, then `docker exec next_train_db_cont psql -U postgres -c "CREATE DATABASE next_train_test;"`
+- Tests require the `.env.test` file (loaded by `pytest-dotenv` with `env_override_existing_values = 1`; see `.env.example`) and a running Docker daemon; nothing else
+- The session-scoped `postgres_container` fixture in `tests/conftest.py` spins up an isolated `postgres:15.10-alpine` container via testcontainers, bound to `settings.DB_PORT`. If that port is already occupied (e.g. by a locally running compose db), the existing server is used instead
 - Test tables are created/dropped via `init_db` fixture in `tests/conftest.py`
 - Populated with SQL from `data/populate_db.sql` via `populate_db` fixture
 - Uses synchronous engine for setup, async for actual tests

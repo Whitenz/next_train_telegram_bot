@@ -291,8 +291,9 @@ async def broadcast_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if query.data != bot_commands.BROADCAST_CONFIRM_CALLBACK:
         return settings.WAITING_FOR_BROADCAST_CONFIRM
 
-    # Execute broadcast
-    text = context.chat_data.get("broadcast_text", "")
+    # Execute broadcast: прямой доступ — отсутствие текста должно падать явно,
+    # а не приводить к тихой рассылке пустого сообщения.
+    text = context.chat_data["broadcast_text"]
     users = await db.select_all_users()
     result = await _send_broadcast(text, context.bot, users)
 

@@ -319,6 +319,24 @@ async def test_broadcast_confirm_ignores_foreign_callback(
 
 
 @pytest.mark.asyncio
+async def test_broadcast_confirm_fails_fast_without_saved_text(
+    update_mock: Mock, context_mock: Mock, developer_id: int
+) -> None:
+    """Отсутствие сохранённого текста — явный сбой, а не тихая пустая рассылка."""
+    update_mock.effective_user.id = developer_id
+    callback_query = Mock(spec=CallbackQuery)
+    callback_query.data = "broadcast_confirm"
+    callback_query.answer = AsyncMock()
+    callback_query.edit_message_text = AsyncMock()
+    update_mock.callback_query = callback_query
+    context_mock.chat_data = {}
+    context_mock.bot = MagicMock()
+
+    with pytest.raises(KeyError):
+        await handlers.broadcast_confirm(update_mock, context_mock)
+
+
+@pytest.mark.asyncio
 async def test_send_broadcast_all_success(mock_db_users: list) -> None:
     """Test sending broadcast to all users successfully."""
     from unittest.mock import MagicMock, patch

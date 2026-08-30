@@ -4,7 +4,6 @@ services:
     container_name: next_train_db_cont
     restart: always
     ports:
-      # Порт публикуется только на localhost — для запуска тестов с хоста.
       - "127.0.0.1:5433:5432"
     volumes:
       - db_vol:/var/lib/postgresql/data/
@@ -19,7 +18,7 @@ services:
       - .env.prod
 
   backend:
-    image: whitenz/next_train:0.7.0
+    image: whitenz/next_train:latest
     container_name: next_train_backend_cont
     volumes:
       - data_vol:/app/logs/

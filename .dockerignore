@@ -1,0 +1,15 @@
+.git
+.venv
+__pycache__/
+*.pyc
+.env
+.env.*
+.idea
+.junie
+.claude
+.mypy_cache
+.pytest_cache
+.ruff_cache
+logs/
+tests/
+docs/

@@ -11,15 +11,15 @@ import pydantic_settings as ps
 class Settings(ps.BaseSettings):
     BOT_TOKEN: str
     DEVELOPER_TG_ID: int
-    DB_DRIVERNAME_SYNC: str
-    DB_DRIVERNAME_ASYNC: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
-    DB_HOST: str
-    DB_PORT: int
-    DB_NAME: str
     TZ: str
     MODE: str
+    DB_DRIVERNAME_SYNC: str = "postgresql"
+    DB_DRIVERNAME_ASYNC: str = "postgresql+asyncpg"
+    DB_HOST: str = "next_train_db_cont"
+    DB_PORT: int = 5432
+    DB_NAME: str = "postgres"
     PROXY_URL: str | None = p.Field(
         default=None,
         description="Прокси для доступа к Telegram API на хостах без прямого доступа;"

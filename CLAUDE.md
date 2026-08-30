@@ -84,6 +84,7 @@ This is a Telegram bot that provides next train information for the Yekaterinbur
 **Configuration** (`src/config.py`)
 - Uses `pydantic-settings` with `BaseSettings`
 - Loads from `.env.prod` then `.env.dev` — later files in the tuple override earlier ones (`.env.dev` wins where both define a variable)
+- Required from env: `BOT_TOKEN`, `DEVELOPER_TG_ID`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `TZ`, `MODE`. DB connection fields (`DB_HOST=next_train_db_cont`, `DB_PORT=5432`, `DB_NAME`, driver names) have container defaults and rarely need overriding
 - Python is constrained to `>=3.12,<3.14`: asyncpg 0.28 has no wheels and fails to build on Python 3.14
 - Optional `PROXY_URL` routes both API calls and getUpdates polling through a proxy (hosts without direct Telegram access). Note: PTB's `.proxy()` alone does NOT cover long polling — `get_updates_proxy()` is applied too
 - All settings accessed via singleton `settings` instance
@@ -106,7 +107,7 @@ This is a Telegram bot that provides next train information for the Yekaterinbur
 - Mismatched loops cause "Future attached to a different loop" errors with SQLAlchemy's async engine (asyncpg pool is loop-bound)
 
 **Database Initialization**
-- Tests require the `.env.test` file (loaded by `pytest-dotenv` with `env_override_existing_values = 1`; see `.env.example`) and a running Docker daemon; nothing else
+- Tests need only a running Docker daemon; the test env (`MODE=test`, fake token, `DB_PORT=5433`, credentials) comes from the `env` list in `pyproject.toml` via pytest-env — no `.env.test` file
 - The session-scoped `postgres_container` fixture in `tests/conftest.py` spins up an isolated `postgres:15.10-alpine` container via testcontainers, bound to `settings.DB_PORT`. If that port is already occupied (e.g. by a locally running compose db), the existing server is used instead
 - Test tables are created/dropped via `init_db` fixture in `tests/conftest.py`
 - Populated with SQL from `data/populate_db.sql` via `populate_db` fixture
@@ -128,7 +129,7 @@ Copy `.env.example` to `.env.dev` for local development:
 - Set `MODE=dev` or `MODE=test` for testing
 - Provide `BOT_TOKEN` from BotFather
 - Set `DEVELOPER_TG_ID` for developer-only commands (e.g., `/download_log`)
-- Configure database connection parameters
+- Database: only `POSTGRES_USER`/`POSTGRES_PASSWORD` are needed — host/port/name default to the compose container
 
 ## Repository Conventions
 

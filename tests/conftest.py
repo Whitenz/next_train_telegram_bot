@@ -8,11 +8,9 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
-    async_sessionmaker,
 )
 from src.config import settings
 from src.db import (
-    async_engine,
     async_session,
     sync_engine,
     sync_session,
@@ -23,10 +21,10 @@ from .fixtures.bot_users import new_telegram_user
 from .fixtures.schedules import schedules
 
 __all__ = [
-    "new_telegram_user",
-    "schedules",
-    "populate_db",
     "async_session_fixture",
+    "new_telegram_user",
+    "populate_db",
+    "schedules",
 ]
 
 

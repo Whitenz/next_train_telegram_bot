@@ -9,17 +9,15 @@ from .config import settings
 
 logger = logging.getLogger(__name__)
 
-F = t.TypeVar("F", bound=t.Callable[[Update, ContextTypes.DEFAULT_TYPE], t.Awaitable[t.Any]])
 
-
-def write_log(func: F) -> F:
+def write_log[F: t.Callable[[Update, ContextTypes.DEFAULT_TYPE], t.Awaitable[t.Any]]](func: F) -> F:
     """
     Функция-декоратор для логгирования действий пользователя при вызове
      обработчиков бота.
     """
 
     @wraps(func)
-    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE) -> t.Awaitable[t.Any]:
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE) -> t.Any:  # noqa: ANN401
         bot_user = update.effective_user
         if update.callback_query:
             command = update.callback_query.data

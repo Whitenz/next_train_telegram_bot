@@ -3,6 +3,8 @@
 import datetime as dt
 
 import pytest
+from src import bot, messages
+from src.config import settings
 from telegram import (
     Bot,
     Chat,
@@ -13,17 +15,12 @@ from telegram import (
 )
 from telegram.ext import ApplicationBuilder
 
-from src import bot, messages
-from src.config import settings
-
 
 def _make_message_update(text: str, user_id: int, bot: Bot) -> Update:
     """Собирает Update с текстовым сообщением от пользователя."""
     user = User(id=user_id, is_bot=False, first_name="Dev")
     entities = (
-        [MessageEntity(type=MessageEntity.BOT_COMMAND, offset=0, length=len(text))]
-        if text.startswith("/")
-        else None
+        [MessageEntity(type=MessageEntity.BOT_COMMAND, offset=0, length=len(text))] if text.startswith("/") else None
     )
     message = Message(
         message_id=1,
@@ -37,7 +34,10 @@ def _make_message_update(text: str, user_id: int, bot: Bot) -> Update:
     return Update(update_id=1, message=message)
 
 
-async def test_broadcast_command_starts_conversation(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.filterwarnings("ignore:Ignoring `conversation_timeout`")
+async def test_broadcast_command_starts_conversation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """/broadcast запускает диалог рассылки, а не перехватывается одиночным CommandHandler."""
     application = ApplicationBuilder().token(settings.BOT_TOKEN).build()
     bot.register_handlers(application)

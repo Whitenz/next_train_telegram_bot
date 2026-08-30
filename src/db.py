@@ -3,6 +3,7 @@ import typing as t
 
 from sqlalchemy import (
     URL,
+    CursorResult,
     Engine,
     asc,
     create_engine,
@@ -96,7 +97,7 @@ async def select_schedule(
     from_station_id: int,
     to_station_id: int,
     current_session: async_sessionmaker[AsyncSession] = async_session,
-) -> t.Sequence[Schedule | None]:
+) -> t.Sequence[Schedule]:
     """Извлекает данные из таблицы 'schedule'.
 
     Функция делает запрос к БД с переданными id станций и возвращает список с объектами
@@ -169,7 +170,7 @@ async def insert_favorite(
 async def select_favorites(
     telegram_user: User,
     current_session: async_sessionmaker[AsyncSession] = async_session,
-) -> t.Sequence[Favorite | None]:
+) -> t.Sequence[Favorite]:
     """Извлекает избранный маршрут пользователя из таблицы 'favorite'.
 
     Функция делает запрос к БД с переданным id пользователя бота для извлечения
@@ -283,9 +284,10 @@ async def delete_user(
     statement = delete(BotUser).where(BotUser.bot_user_id == user_id)
 
     async with current_session() as session:
-        result = await session.execute(statement)
+        # Для DML-запросов execute возвращает CursorResult с rowcount
+        result = t.cast("CursorResult[t.Any]", await session.execute(statement))
         await session.commit()
-        return result.rowcount > 0
+        return bool(result.rowcount)
 
 
 async def delete_users(
@@ -307,6 +309,7 @@ async def delete_users(
     statement = delete(BotUser).where(BotUser.bot_user_id.in_(user_ids))
 
     async with current_session() as session:
-        result = await session.execute(statement)
+        # Для DML-запросов execute возвращает CursorResult с rowcount
+        result = t.cast("CursorResult[t.Any]", await session.execute(statement))
         await session.commit()
         return int(result.rowcount or 0)

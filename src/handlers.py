@@ -404,9 +404,10 @@ async def _send_broadcast(text: str, bot: Bot, users: Sequence[BotUser]) -> dict
             blocked_ids.append(user.bot_user_id)
             logger.warning("User %s blocked bot, will be deleted from DB", user.bot_user_id)
         except (NetworkError, TimedOut):
-            # Временная сетевая ошибка — пользователя не удаляем
+            # Временная сетевая ошибка — пользователя не удаляем.
+            # Без стека в логе: при сетевом сбое таких записей будет по одной на юзера.
             failed += 1
-            logger.error("Failed to send to %s: network error", user.bot_user_id)
+            logger.error("Failed to send to %s: network error", user.bot_user_id)  # noqa: TRY400
         except Exception:
             # Other errors
             failed += 1
@@ -460,9 +461,7 @@ CONVERSATION_HANDLER = ConversationHandler(
     conversation_timeout=settings.CONVERSATION_TIMEOUT,
 )
 
-BROADCAST_CALLBACK_PATTERN = (
-    rf"^{bot_commands.BROADCAST_CONFIRM_CALLBACK}$|^{bot_commands.BROADCAST_CANCEL_CALLBACK}$"
-)
+BROADCAST_CALLBACK_PATTERN = rf"^{bot_commands.BROADCAST_CONFIRM_CALLBACK}$|^{bot_commands.BROADCAST_CANCEL_CALLBACK}$"
 
 BROADCAST_CONVERSATION_HANDLER = ConversationHandler(
     entry_points=[CommandHandler(bot_commands.BROADCAST, broadcast)],

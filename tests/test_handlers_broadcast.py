@@ -10,6 +10,7 @@ from unittest.mock import (
 import pytest
 from src import handlers, messages
 from src.config import settings
+from src.models import BotUser
 from telegram import (
     CallbackQuery,
     InlineKeyboardMarkup,
@@ -17,6 +18,7 @@ from telegram import (
     Update,
     User,
 )
+from telegram.error import Forbidden, NetworkError
 from telegram.ext import CallbackContext, ConversationHandler
 
 
@@ -65,9 +67,7 @@ async def test_broadcast_unauthorized_user(update_mock: Mock, context_mock: Mock
 
 
 @pytest.mark.asyncio
-async def test_broadcast_authorized_user(
-    update_mock: Mock, context_mock: Mock, developer_id: int
-) -> None:
+async def test_broadcast_authorized_user(update_mock: Mock, context_mock: Mock, developer_id: int) -> None:
     """Test that authorized developer can access broadcast command."""
     # Mock the developer user
     update_mock.effective_user.id = developer_id
@@ -81,10 +81,8 @@ async def test_broadcast_authorized_user(
 
 
 @pytest.fixture
-def mock_db_users() -> list:
+def mock_db_users() -> list[BotUser]:
     """Create mock database users for testing."""
-    from src.models import BotUser
-
     return [
         BotUser(
             bot_user_id=111,
@@ -104,9 +102,7 @@ def mock_db_users() -> list:
 
 
 @pytest.mark.asyncio
-async def test_broadcast_receive_text_too_long(
-    update_mock: Mock, context_mock: Mock, developer_id: int
-) -> None:
+async def test_broadcast_receive_text_too_long(update_mock: Mock, context_mock: Mock, developer_id: int) -> None:
     """Test that too long text is rejected."""
     update_mock.effective_user.id = developer_id
     update_mock.message.text = "x" * 5000  # Too long
@@ -119,9 +115,7 @@ async def test_broadcast_receive_text_too_long(
 
 
 @pytest.mark.asyncio
-async def test_broadcast_receive_text_empty(
-    update_mock: Mock, context_mock: Mock, developer_id: int
-) -> None:
+async def test_broadcast_receive_text_empty(update_mock: Mock, context_mock: Mock, developer_id: int) -> None:
     """Test that empty text is rejected."""
     update_mock.effective_user.id = developer_id
     update_mock.message.text = ""
@@ -135,11 +129,9 @@ async def test_broadcast_receive_text_empty(
 
 @pytest.mark.asyncio
 async def test_broadcast_receive_text_success(
-    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list
+    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list[BotUser]
 ) -> None:
     """Test successful text reception and preview."""
-    from unittest.mock import patch
-
     update_mock.effective_user.id = developer_id
     update_mock.message.text = "Test broadcast message"
     update_mock.message.reply_text.return_value = None
@@ -166,7 +158,7 @@ async def test_broadcast_receive_text_success(
 
 @pytest.mark.asyncio
 async def test_broadcast_receive_text_rejects_text_filling_whole_limit(
-    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list
+    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list[BotUser]
 ) -> None:
     """Текст ровно в 4096 символов отклоняется: превью добавляет служебную шапку."""
     update_mock.effective_user.id = developer_id
@@ -182,7 +174,7 @@ async def test_broadcast_receive_text_rejects_text_filling_whole_limit(
 
 @pytest.mark.asyncio
 async def test_broadcast_receive_text_rejects_emoji_heavy_text(
-    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list
+    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list[BotUser]
 ) -> None:
     """Эмодзи-текст отклоняется по UTF-16 лимиту, а не по числу code points."""
     update_mock.effective_user.id = developer_id
@@ -199,7 +191,7 @@ async def test_broadcast_receive_text_rejects_emoji_heavy_text(
 
 @pytest.mark.asyncio
 async def test_broadcast_receive_text_escapes_html(
-    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list
+    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list[BotUser]
 ) -> None:
     """Спецсимволы HTML в тексте рассылки экранируются в превью."""
     update_mock.effective_user.id = developer_id
@@ -217,12 +209,8 @@ async def test_broadcast_receive_text_escapes_html(
 
 
 @pytest.mark.asyncio
-async def test_broadcast_confirm_cancel(
-    update_mock: Mock, context_mock: Mock, developer_id: int
-) -> None:
+async def test_broadcast_confirm_cancel(update_mock: Mock, context_mock: Mock, developer_id: int) -> None:
     """Test cancelling the broadcast."""
-    from unittest.mock import MagicMock
-
     update_mock.effective_user.id = developer_id
     update_mock.callback_query = MagicMock()
     update_mock.callback_query.from_user.id = developer_id
@@ -240,9 +228,7 @@ async def test_broadcast_confirm_cancel(
 
 
 @pytest.mark.asyncio
-async def test_broadcast_confirm_success(
-    update_mock: Mock, context_mock: Mock, developer_id: int
-) -> None:
+async def test_broadcast_confirm_success(update_mock: Mock, context_mock: Mock, developer_id: int) -> None:
     """Test successful broadcast confirmation."""
     update_mock.effective_user.id = developer_id
     # spec=CallbackQuery не даст сфабриковать несуществующие атрибуты:
@@ -270,7 +256,7 @@ async def test_broadcast_confirm_success(
 
 @pytest.mark.asyncio
 async def test_broadcast_receive_text_saves_bot_message(
-    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list
+    update_mock: Mock, context_mock: Mock, developer_id: int, mock_db_users: list[BotUser]
 ) -> None:
     """Preview-сообщение сохраняется в chat_data для обработки таймаута диалога."""
     update_mock.effective_user.id = developer_id
@@ -337,9 +323,8 @@ async def test_broadcast_confirm_fails_fast_without_saved_text(
 
 
 @pytest.mark.asyncio
-async def test_send_broadcast_all_success(mock_db_users: list) -> None:
+async def test_send_broadcast_all_success(mock_db_users: list[BotUser]) -> None:
     """Test sending broadcast to all users successfully."""
-    from unittest.mock import MagicMock, patch
 
     # Mock bot.send_message to succeed
     async def mock_send_message(*args: object, **kwargs: object) -> MagicMock:
@@ -361,10 +346,8 @@ async def test_send_broadcast_all_success(mock_db_users: list) -> None:
 
 
 @pytest.mark.asyncio
-async def test_send_broadcast_with_blocked_user(mock_db_users: list) -> None:
+async def test_send_broadcast_with_blocked_user(mock_db_users: list[BotUser]) -> None:
     """Test sending broadcast when one user blocked the bot."""
-    from telegram.error import Forbidden
-
     # Mock bot.send_message to raise Forbidden for first user
     call_count = 0
 
@@ -382,9 +365,10 @@ async def test_send_broadcast_with_blocked_user(mock_db_users: list) -> None:
     mock_bot.send_message = mock_send_message
 
     # Заблокировавшие удаляются одним batch-запросом после цикла отправки
-    with patch("asyncio.sleep", new=mock_sleep), patch(
-        "src.handlers.db.delete_users", new=AsyncMock(return_value=1)
-    ) as mock_delete:
+    with (
+        patch("asyncio.sleep", new=mock_sleep),
+        patch("src.handlers.db.delete_users", new=AsyncMock(return_value=1)) as mock_delete,
+    ):
         result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
 
     # Check that blocked users were deleted in a single batch
@@ -395,10 +379,8 @@ async def test_send_broadcast_with_blocked_user(mock_db_users: list) -> None:
 
 
 @pytest.mark.asyncio
-async def test_send_broadcast_survives_delete_users_failure(mock_db_users: list) -> None:
+async def test_send_broadcast_survives_delete_users_failure(mock_db_users: list[BotUser]) -> None:
     """Сбой batch-удаления заблокировавших не прерывает рассылку."""
-    from telegram.error import Forbidden
-
     call_count = 0
 
     async def mock_send_message(chat_id: int, *args: object, **kwargs: object) -> MagicMock:
@@ -414,8 +396,9 @@ async def test_send_broadcast_survives_delete_users_failure(mock_db_users: list)
     mock_bot = MagicMock()
     mock_bot.send_message = mock_send_message
 
-    with patch("asyncio.sleep", new=mock_sleep), patch(
-        "src.handlers.db.delete_users", new=AsyncMock(side_effect=Exception("db down"))
+    with (
+        patch("asyncio.sleep", new=mock_sleep),
+        patch("src.handlers.db.delete_users", new=AsyncMock(side_effect=Exception("db down"))),
     ):
         result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
 
@@ -426,12 +409,8 @@ async def test_send_broadcast_survives_delete_users_failure(mock_db_users: list)
 
 
 @pytest.mark.asyncio
-async def test_send_broadcast_with_network_error(mock_db_users: list) -> None:
+async def test_send_broadcast_with_network_error(mock_db_users: list[BotUser]) -> None:
     """Test sending broadcast when network error occurs."""
-    from unittest.mock import AsyncMock, MagicMock, patch
-
-    from telegram.error import NetworkError
-
     # Mock bot.send_message to raise NetworkError for first user
     call_count = 0
 
@@ -448,9 +427,10 @@ async def test_send_broadcast_with_network_error(mock_db_users: list) -> None:
     mock_bot = MagicMock()
     mock_bot.send_message = mock_send_message
 
-    with patch("asyncio.sleep", new=mock_sleep), patch(
-        "src.handlers.db.delete_users", new=AsyncMock(return_value=0)
-    ) as mock_delete:
+    with (
+        patch("asyncio.sleep", new=mock_sleep),
+        patch("src.handlers.db.delete_users", new=AsyncMock(return_value=0)) as mock_delete,
+    ):
         result = await handlers._send_broadcast("Test message", mock_bot, mock_db_users)
 
     # User should NOT be deleted for network errors
@@ -458,4 +438,3 @@ async def test_send_broadcast_with_network_error(mock_db_users: list) -> None:
     assert result["sent"] == 1
     assert result["failed"] == 1
     assert result["blocked"] == 0
-

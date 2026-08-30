@@ -49,7 +49,7 @@ class TestBotUser:
         assert bot_users[0].is_bot == new_telegram_user.is_bot
 
     @pytest.mark.asyncio
-    async def test_select_all_users(self, async_session_fixture) -> None:
+    async def test_select_all_users(self, async_session_fixture: AsyncSession) -> None:
         """Test that we can select all users from database."""
         # Get initial count
         initial_users = await db.select_all_users()
@@ -83,7 +83,7 @@ class TestBotUser:
         assert 222 in user_ids
 
     @pytest.mark.asyncio
-    async def test_delete_user(self, async_session_fixture) -> None:
+    async def test_delete_user(self, async_session_fixture: AsyncSession) -> None:
         """Test that we can delete a user from database."""
         # Create a test user
         user = models.BotUser(
@@ -115,7 +115,7 @@ class TestBotUser:
         assert result2 is False
 
     @pytest.mark.asyncio
-    async def test_delete_user_cascades_favorites(self, async_session_fixture, populate_db: None) -> None:
+    async def test_delete_user_cascades_favorites(self, async_session_fixture: AsyncSession, populate_db: None) -> None:
         """Test that deleting a user cascades to their favorite routes."""
         # Create a test user
         user = models.BotUser(

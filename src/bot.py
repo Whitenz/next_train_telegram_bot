@@ -1,3 +1,5 @@
+import typing as t
+
 from telegram.ext import (
     Application,
     ApplicationBuilder,
@@ -23,7 +25,7 @@ COMMAND_HANDLERS = {
 }
 
 
-def register_handlers(application: Application) -> None:
+def register_handlers(application: Application[t.Any, t.Any, t.Any, t.Any, t.Any, t.Any]) -> None:
     """Регистрирует обработчики команд и диалогов в приложении бота."""
     for command, callback in COMMAND_HANDLERS.items():
         application.add_handler(CommandHandler(command, callback))

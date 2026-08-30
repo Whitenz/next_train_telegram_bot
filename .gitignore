@@ -144,3 +144,6 @@ backup/
 *.db3
 *.s3db
 *.sl3
+
+# Local planning docs — specs and plans are not committed
+docs/plans/

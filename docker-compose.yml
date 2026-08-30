@@ -10,10 +10,11 @@ services:
       - ./data/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
       - ./data/populate_db.sql:/docker-entrypoint-initdb.d/populate_db.sql
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${PGUSER}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER && psql -U $$POSTGRES_USER -d $$DB_NAME -tAc 'SELECT COUNT(*) FROM schedule' | grep -qv '^0'"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     env_file:
       - .env.prod
 

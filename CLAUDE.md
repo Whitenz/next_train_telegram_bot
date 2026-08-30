@@ -42,15 +42,23 @@ uv run mypy src
 
 ### Docker
 ```bash
-# Build and start services
-docker-compose up -d
+# Build the local image (multistage: builder with gcc, slim python-alpine runtime)
+docker build -t whitenz/next_train:<tag> .
+
+# Start services
+docker compose up -d
 
 # View logs
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Stop services
-docker-compose down
+docker compose down
 ```
+
+- **Never run `docker compose down -v` on the server** — it deletes `db_vol` with all data
+- `data/*.sql` mounted into `/docker-entrypoint-initdb.d/` run only on an empty volume; existing data is never overwritten. Prod update: `docker compose pull && docker compose up -d`
+- db healthcheck verifies the `schedule` table has rows (not just `pg_isready`), so backend (`depends_on: service_healthy`) never starts against an empty DB after a failed first-time populate
+- DB port is published as `127.0.0.1:5433:5432` for running tests from the host only
 
 ## Architecture
 
@@ -120,3 +128,8 @@ Copy `.env.example` to `.env.dev` for local development:
 - Provide `BOT_TOKEN` from BotFather
 - Set `DEVELOPER_TG_ID` for developer-only commands (e.g., `/download_log`)
 - Configure database connection parameters
+
+## Repository Conventions
+
+- Plans and specs (`docs/plans/`, in `.gitignore`) are local-only and never committed; only reference files like `CLAUDE.md` go into git
+- Comments in code are avoided: docstrings, constants and helper names carry the "why" instead

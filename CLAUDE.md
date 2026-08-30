@@ -75,7 +75,8 @@ This is a Telegram bot that provides next train information for the Yekaterinbur
 
 **Configuration** (`src/config.py`)
 - Uses `pydantic-settings` with `BaseSettings`
-- Loads from `.env.prod` then `.env.dev` (first found wins)
+- Loads from `.env.prod` then `.env.dev` — later files in the tuple override earlier ones (`.env.dev` wins where both define a variable)
+- Python is constrained to `>=3.12,<3.14`: asyncpg 0.28 has no wheels and fails to build on Python 3.14
 - All settings accessed via singleton `settings` instance
 - Key config: `MODE` (must be "test" for tests), `BOT_TOKEN`, database credentials
 
@@ -91,12 +92,13 @@ This is a Telegram bot that provides next train information for the Yekaterinbur
 ### Key Implementation Details
 
 **AsyncIO in Tests**
-- Tests use `pytest` with async test functions (marked with `@pytest.mark.anyio` or implicitly)
-- **Critical**: A session-scoped `event_loop` fixture in `tests/conftest.py` ensures all async operations use the same event loop
-- This prevents "Future attached to a different loop" errors with SQLAlchemy's async engine
+- Tests use `pytest` with `pytest-asyncio` in `asyncio_mode = "auto"`
+- **Critical**: both `asyncio_default_test_loop_scope` and `asyncio_default_fixture_loop_scope` are set to `"session"` in `pyproject.toml` — tests AND async fixtures must share one event loop
+- Mismatched loops cause "Future attached to a different loop" errors with SQLAlchemy's async engine (asyncpg pool is loop-bound)
 
 **Database Initialization**
-- Test database is created/dropped via `init_db` fixture in `tests/conftest.py`
+- Tests require the `.env.test` file (loaded by `pytest-dotenv` with `env_override_existing_values = 1`; see `.env.test.example`) and a PostgreSQL instance reachable at `localhost:5433` with an existing `next_train_test` database: `docker compose up --wait -d db`, then `docker exec next_train_db_cont psql -U postgres -c "CREATE DATABASE next_train_test;"`
+- Test tables are created/dropped via `init_db` fixture in `tests/conftest.py`
 - Populated with SQL from `data/populate_db.sql` via `populate_db` fixture
 - Uses synchronous engine for setup, async for actual tests
 
